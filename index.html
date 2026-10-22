@@ -1,0 +1,502 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#101c35">
+  <title>HardDiag | Diagnóstico de hardware</title>
+  <style>
+    :root {
+      color-scheme: light;
+      --ink: #17233b;
+      --muted: #64718a;
+      --line: #e5eaf2;
+      --blue: #315ee8;
+      --blue-dark: #2448bf;
+      --canvas: #f4f7fb;
+      --white: #fff;
+      --shadow: 0 16px 42px rgba(24, 43, 83, .08);
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      background: var(--canvas);
+      color: var(--ink);
+      font: 15px/1.55 "Segoe UI", Inter, system-ui, sans-serif;
+    }
+    button, input, select { font: inherit; }
+    .hero {
+      background:
+        radial-gradient(ellipse at 82% 12%, rgba(113, 157, 255, .3), transparent 32%),
+        linear-gradient(120deg, #101c35, #1b3262 72%, #24468a);
+      color: #fff;
+      padding: 32px 24px 72px;
+    }
+    .hero-inner, main { width: min(1080px, 100% - 40px); margin: 0 auto; }
+    .brand { display: flex; align-items: center; gap: 12px; font-weight: 750; letter-spacing: .02em; }
+    .brand-mark {
+      display: grid; width: 42px; height: 42px; place-items: center;
+      border: 1px solid rgba(255,255,255,.25); border-radius: 13px;
+      background: rgba(255,255,255,.12); font-size: 21px;
+    }
+    .hero-copy { max-width: 650px; padding-top: 38px; }
+    .eyebrow { color: #b9ccff; font-size: 12px; font-weight: 750; letter-spacing: .14em; text-transform: uppercase; }
+    h1 { margin: 8px 0 10px; font-size: clamp(30px, 5vw, 46px); letter-spacing: -.04em; line-height: 1.12; }
+    .hero p { max-width: 590px; margin: 0; color: #d5def1; font-size: 16px; }
+    main { margin-top: -34px; padding-bottom: 56px; }
+    .layout { display: grid; grid-template-columns: minmax(0, 1.25fr) minmax(270px, .75fr); gap: 22px; align-items: start; }
+    .card { border: 1px solid var(--line); border-radius: 18px; background: var(--white); box-shadow: var(--shadow); }
+    .form-card { padding: 26px; }
+    .section-head { display: flex; justify-content: space-between; align-items: start; gap: 12px; margin-bottom: 20px; }
+    h2 { margin: 0; font-size: 20px; letter-spacing: -.02em; }
+    h3 { margin: 0; font-size: 15px; }
+    .section-head p, .helper { margin: 4px 0 0; color: var(--muted); font-size: 13px; }
+    .step { display: grid; width: 30px; height: 30px; flex: 0 0 auto; place-items: center; border-radius: 10px; background: #edf2ff; color: var(--blue); font-weight: 750; }
+    .symptom-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 9px; }
+    .symptom {
+      display: flex; align-items: flex-start; gap: 10px; min-height: 57px; padding: 12px;
+      border: 1px solid var(--line); border-radius: 12px; cursor: pointer; transition: .15s ease;
+    }
+    .symptom:hover { border-color: #aabcf7; background: #fafbff; }
+    .symptom:has(input:checked) { border-color: #7592f2; background: #f2f5ff; }
+    .symptom input { margin: 4px 0 0; accent-color: var(--blue); }
+    .symptom span { font-size: 13px; line-height: 1.35; }
+    .loading { color: var(--muted); padding: 18px 0; }
+    .divider { height: 1px; margin: 24px 0; background: var(--line); }
+    .section-title { display: flex; align-items: center; gap: 10px; margin-bottom: 14px; }
+    .section-title .step { width: 26px; height: 26px; border-radius: 9px; font-size: 13px; }
+    .field-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; }
+    .field { display: grid; gap: 6px; }
+    .field label, .test-row label { font-size: 12px; font-weight: 700; color: #43516b; }
+    .optional-toggle { display: flex; align-items: center; gap: 7px; color: var(--muted); font-size: 12px; font-weight: 500; cursor: pointer; }
+    .optional-toggle input { margin: 0; accent-color: var(--blue); }
+    input[type="number"], select {
+      width: 100%; min-height: 42px; padding: 9px 11px; border: 1px solid #dce3ee;
+      border-radius: 10px; background: #fff; color: var(--ink);
+    }
+    input:focus, select:focus, button:focus-visible { outline: 3px solid rgba(49,94,232,.2); outline-offset: 1px; border-color: var(--blue); }
+    .test-list { display: grid; gap: 10px; }
+    .test-row { display: grid; grid-template-columns: 1.3fr 1fr 38px; gap: 9px; align-items: end; }
+    .test-row button { height: 42px; border: 1px solid var(--line); border-radius: 10px; background: #fff; color: #7c3340; cursor: pointer; font-size: 18px; }
+    .test-actions { margin-top: 11px; }
+    .link-button { padding: 5px 0; border: 0; background: none; color: var(--blue); font-size: 13px; font-weight: 700; cursor: pointer; }
+    .button-row { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 25px; }
+    .primary, .secondary { min-height: 46px; padding: 0 18px; border-radius: 11px; font-weight: 700; cursor: pointer; }
+    .primary { border: 0; background: var(--blue); color: #fff; box-shadow: 0 7px 18px rgba(49,94,232,.2); }
+    .primary:hover { background: var(--blue-dark); }
+    .primary:disabled { cursor: wait; opacity: .65; }
+    .secondary { border: 1px solid var(--line); background: #fff; color: #43516b; }
+    .aside { display: grid; gap: 16px; }
+    .side-card { padding: 21px; }
+    .side-card p { margin: 8px 0 0; color: var(--muted); font-size: 13px; }
+    .tip { display: flex; gap: 12px; padding: 14px; border-radius: 13px; background: #eef3ff; color: #34496f; font-size: 13px; }
+    .tip-icon { font-size: 19px; }
+    .safety { border-left: 3px solid #efa13b; }
+    .safety strong { color: #785119; }
+    #result { margin-top: 22px; padding: 24px; }
+    #result[hidden] { display: none; }
+    .result-top { display: flex; justify-content: space-between; align-items: center; gap: 12px; margin-bottom: 16px; }
+    .status { display: inline-flex; align-items: center; gap: 7px; padding: 6px 10px; border-radius: 99px; background: #e9f8f0; color: #167447; font-size: 12px; font-weight: 750; }
+    .status.warn { background: #fff5e5; color: #8a5a0b; }
+    .diagnosis-list { display: grid; gap: 12px; }
+    .diagnosis { padding: 17px; border: 1px solid var(--line); border-radius: 13px; }
+    .diagnosis-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; }
+    .diagnosis h3 { font-size: 16px; }
+    .meta { display: flex; flex-wrap: wrap; gap: 7px; margin-top: 9px; }
+    .pill { padding: 3px 8px; border-radius: 99px; background: #f0f3f8; color: #53617a; font-size: 11px; font-weight: 700; }
+    .pill.critica, .pill.alta { background: #fff0ee; color: #a13a2c; }
+    .pill.media { background: #fff5e5; color: #8a5a0b; }
+    .pill.baja { background: #eaf7ef; color: #26744a; }
+    .action { margin: 13px 0 0; color: #45536b; font-size: 13px; }
+    .action strong { color: var(--ink); }
+    .suspect-list { display: grid; gap: 8px; margin: 13px 0 0; padding: 0; list-style: none; }
+    .suspect-list li { display: flex; justify-content: space-between; padding: 10px 12px; border: 1px solid var(--line); border-radius: 10px; font-size: 13px; }
+    .discarded { margin-top: 14px; padding: 12px; border-radius: 10px; background: #fff8e8; color: #75551a; font-size: 13px; }
+    .error { margin-top: 14px; padding: 12px 14px; border: 1px solid #f3c3bf; border-radius: 10px; background: #fff2f1; color: #9a3028; }
+    .footer { margin-top: 24px; color: var(--muted); text-align: center; font-size: 12px; }
+    @media (max-width: 760px) {
+      .hero { padding: 25px 0 63px; }
+      .hero-inner, main { width: min(100% - 28px, 620px); }
+      .hero-copy { padding-top: 29px; }
+      .layout { grid-template-columns: 1fr; }
+      .aside { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    }
+    @media (max-width: 520px) {
+      .form-card, #result { padding: 19px; }
+      .symptom-grid, .field-grid, .aside { grid-template-columns: 1fr; }
+      .test-row { grid-template-columns: 1fr 1fr 34px; gap: 7px; }
+      .test-row label { font-size: 11px; }
+      .button-row > button { flex: 1; }
+    }
+  </style>
+</head>
+<body>
+  <header class="hero">
+    <div class="hero-inner">
+      <div class="brand"><span class="brand-mark" aria-hidden="true">⌁</span><span>HardDiag</span></div>
+      <div class="hero-copy">
+        <div class="eyebrow">Asistente de soporte técnico</div>
+        <h1>Entiende qué le pasa a tu computador.</h1>
+        <p>Selecciona los síntomas y las pruebas que ya realizaste. El sistema analizará la evidencia y te sugerirá los siguientes pasos.</p>
+      </div>
+    </div>
+  </header>
+  <main>
+    <div class="layout">
+      <form class="card form-card" id="diagnostic-form">
+        <section aria-labelledby="symptom-title">
+          <div class="section-head">
+            <div><h2 id="symptom-title">¿Qué está ocurriendo?</h2><p>Selecciona todos los síntomas que observas.</p></div>
+            <span class="step" aria-hidden="true">01</span>
+          </div>
+          <div id="symptom-grid" class="symptom-grid"><div class="loading">Cargando síntomas...</div></div>
+        </section>
+        <div class="divider"></div>
+        <section aria-labelledby="details-title">
+          <div class="section-title"><span class="step" aria-hidden="true">02</span><h3 id="details-title">Detalles adicionales</h3></div>
+          <p class="helper">Son opcionales; agrega los datos que conozcas.</p>
+          <div class="field-grid" style="margin-top:14px">
+            <div class="field">
+              <label for="temperatura">Temperatura del procesador (°C)</label>
+              <label class="optional-toggle" for="temperatura-desconocida">
+                <input id="temperatura-desconocida" type="checkbox" checked>
+                No conozco la temperatura / no deseo indicarla
+              </label>
+              <input id="temperatura" type="number" min="0" max="150" step="1" placeholder="Ej. 92" disabled>
+            </div>
+            <div class="field">
+              <label for="pitidos">Patrón de pitidos al encender</label>
+              <label class="optional-toggle" for="pitidos-desconocidos">
+                <input id="pitidos-desconocidos" type="checkbox" checked>
+                No conozco el patrón / no deseo indicarlo
+              </label>
+              <select id="pitidos" disabled>
+                <option value="">No conozco / no aplica</option>
+                <option value="tres_cortos">Tres pitidos cortos</option>
+                <option value="un_largo_dos_cortos">Uno largo y dos cortos</option>
+                <option value="cortos_repetidos">Pitidos cortos repetidos</option>
+                <option value="un_largo_tres_cortos">Uno largo y tres cortos</option>
+              </select>
+            </div>
+            <div class="field">
+              <label for="tipo-equipo">Tipo de computador</label>
+              <select id="tipo-equipo">
+                <option value="">No especificar</option>
+                <option value="escritorio">Escritorio</option>
+                <option value="portatil">Portátil</option>
+              </select>
+            </div>
+            <div class="field">
+              <label for="antiguedad">Antigüedad (años)</label>
+              <input id="antiguedad" type="number" min="0" max="100" step="1" placeholder="Ej. 5">
+            </div>
+          </div>
+        </section>
+        <div class="divider"></div>
+        <section aria-labelledby="tests-title">
+          <div class="section-title"><span class="step" aria-hidden="true">03</span><h3 id="tests-title">Pruebas realizadas</h3></div>
+          <p class="helper">Indica las pruebas que realizaste y el resultado obtenido. Si no hiciste ninguna, déjalo marcado.</p>
+          <label class="optional-toggle" for="sin-pruebas" style="margin-top:12px">
+            <input id="sin-pruebas" type="checkbox" checked>
+            No hice ninguna prueba
+          </label>
+          <div id="test-list" class="test-list" style="margin-top:14px"></div>
+          <div class="test-actions"><button class="link-button" id="add-test" type="button" disabled>＋ Agregar una prueba</button></div>
+        </section>
+        <div id="form-error" class="error" role="alert" hidden></div>
+        <div class="button-row">
+          <button class="primary" type="submit" id="submit-button">Analizar síntomas <span aria-hidden="true">→</span></button>
+          <button class="secondary" type="reset">Limpiar formulario</button>
+        </div>
+      </form>
+      <aside class="aside" aria-label="Información útil">
+        <section class="card side-card">
+          <h3>¿Cómo funciona?</h3>
+          <p>El motor experto contrasta tus observaciones con reglas de diagnóstico de hardware y ordena los resultados por prioridad.</p>
+        </section>
+        <section class="card side-card">
+          <div class="tip"><span class="tip-icon" aria-hidden="true">💡</span><div><strong>Consejo</strong><br>Entre más síntomas y resultados de pruebas agregues, más útil será el diagnóstico.</div></div>
+          <div class="tip safety" style="margin-top:12px"><span class="tip-icon" aria-hidden="true">⚠</span><div><strong>Seguridad</strong><br>Si percibes olor a quemado, apaga y desconecta el equipo. No abras la fuente de poder.</div></div>
+        </section>
+      </aside>
+    </div>
+    <section class="card" id="result" aria-live="polite" aria-labelledby="result-title" hidden></section>
+    <div class="footer">HardDiag · Sistema experto de diagnóstico de hardware</div>
+  </main>
+  <script>
+    const $ = (selector, root = document) => root.querySelector(selector);
+    const symptomGrid = $("#symptom-grid");
+    const testList = $("#test-list");
+    const form = $("#diagnostic-form");
+    const resultPanel = $("#result");
+    const formError = $("#form-error");
+    const testOptions = [
+      ["fuente_con_probador", "Probar la fuente con un probador"],
+      ["cambio_cable", "Cambiar el cable de video"],
+      ["otro_monitor", "Conectar otro monitor"],
+      ["gpu_en_otro_equipo", "Probar la gráfica en otro equipo"],
+      ["reasentar_ram", "Reasentar la memoria RAM"],
+      ["smart_disco", "Revisar estado SMART del disco"],
+      ["cambio_bateria", "Cambiar la batería CMOS"]
+    ];
+    const resultOptions = [
+      ["falla", "La prueba detectó una falla"],
+      ["ok", "El componente pasó la prueba"],
+      ["resuelve", "La acción resolvió el problema"],
+      ["no_resuelve", "La acción no resolvió el problema"]
+    ];
+    const testNames = Object.fromEntries(testOptions);
+    const testResultNames = Object.fromEntries(resultOptions);
+    const displayNames = {
+      fuente_poder_defectuosa: "Fuente de poder defectuosa",
+      cable_o_monitor_defectuoso: "Cable o monitor defectuoso",
+      gpu_defectuosa: "Tarjeta gráfica defectuosa",
+      placa_base_defectuosa: "Placa base defectuosa",
+      refrigeracion_deficiente: "Refrigeración deficiente",
+      ram_mal_asentada: "Memoria RAM mal asentada",
+      ram_defectuosa: "Memoria RAM defectuosa",
+      disco_fallando: "Disco de almacenamiento fallando",
+      bateria_cmos_agotada: "Batería CMOS agotada"
+    };
+    const componentNames = {
+      fuente_poder: "Fuente de poder", placa_base: "Placa base",
+      procesador: "Procesador y refrigeración", memoria_ram: "Memoria RAM",
+      almacenamiento: "Almacenamiento", tarjeta_video: "Tarjeta gráfica y video"
+    };
+    const stateMessages = {
+      ok: "Diagnóstico generado",
+      datos_insuficientes: "Necesitamos más información",
+      entrada_vacia: "No se ingresaron condiciones",
+      entrada_invalida: "No se encontraron condiciones válidas"
+    };
+
+    function makeOption(value, label) {
+      const option = document.createElement("option");
+      option.value = value;
+      option.textContent = label;
+      return option;
+    }
+
+    function syncOptionalFields() {
+      $("#temperatura").disabled = $("#temperatura-desconocida").checked;
+      $("#pitidos").disabled = $("#pitidos-desconocidos").checked;
+    }
+
+    function syncTestOptions() {
+      const sinPruebas = $("#sin-pruebas");
+      $("#add-test").disabled = sinPruebas.checked || testList.children.length >= testOptions.length;
+      testList.hidden = sinPruebas.checked;
+    }
+
+    function addTestRow() {
+      if ($("#sin-pruebas").checked || testList.children.length >= testOptions.length) return;
+      const row = document.createElement("div");
+      row.className = "test-row";
+      const testLabel = document.createElement("label");
+      testLabel.textContent = "Prueba";
+      const testSelect = document.createElement("select");
+      testSelect.setAttribute("aria-label", "Prueba realizada");
+      testSelect.append(makeOption("", "Selecciona una prueba"));
+      testOptions.forEach(([value, text]) => testSelect.append(makeOption(value, text)));
+      testLabel.append(testSelect);
+      const resultLabel = document.createElement("label");
+      resultLabel.textContent = "Resultado";
+      const resultSelect = document.createElement("select");
+      resultSelect.setAttribute("aria-label", "Resultado de la prueba");
+      resultSelect.append(makeOption("", "Selecciona"));
+      resultOptions.forEach(([value, text]) => resultSelect.append(makeOption(value, text)));
+      resultLabel.append(resultSelect);
+      const remove = document.createElement("button");
+      remove.type = "button";
+      remove.textContent = "×";
+      remove.setAttribute("aria-label", "Quitar prueba");
+      remove.addEventListener("click", () => {
+        row.remove();
+        syncTestOptions();
+      });
+      row.append(testLabel, resultLabel, remove);
+      testList.append(row);
+      syncTestOptions();
+    }
+
+    function renderSymptoms(sintomas) {
+      symptomGrid.replaceChildren();
+      sintomas.forEach(({id, descripcion}) => {
+        const label = document.createElement("label");
+        label.className = "symptom";
+        const checkbox = document.createElement("input");
+        checkbox.type = "checkbox";
+        checkbox.name = "sintomas";
+        checkbox.value = id;
+        const text = document.createElement("span");
+        text.textContent = descripcion;
+        label.append(checkbox, text);
+        symptomGrid.append(label);
+      });
+    }
+
+    function createPill(text, className = "") {
+      const pill = document.createElement("span");
+      pill.className = `pill ${className}`.trim();
+      pill.textContent = text;
+      return pill;
+    }
+
+    function renderResult(data, pruebas) {
+      resultPanel.replaceChildren();
+      const top = document.createElement("div");
+      top.className = "result-top";
+      const heading = document.createElement("h2");
+      heading.id = "result-title";
+      heading.textContent = "Resultado del análisis";
+      const status = document.createElement("span");
+      status.className = `status${data.estado === "ok" ? "" : " warn"}`;
+      status.textContent = stateMessages[data.estado] || data.estado;
+      top.append(heading, status);
+      resultPanel.append(top);
+
+      const testSummary = document.createElement("div");
+      testSummary.className = "discarded";
+      if (pruebas.length) {
+        const title = document.createElement("strong");
+        title.textContent = "Resultados de las pruebas realizadas:";
+        const list = document.createElement("ul");
+        list.style.margin = "8px 0 0";
+        list.style.paddingLeft = "20px";
+        pruebas.forEach(({nombre, resultado}) => {
+          const item = document.createElement("li");
+          item.textContent = `${testNames[nombre] || nombre}: ${testResultNames[resultado] || resultado}.`;
+          list.append(item);
+        });
+        testSummary.append(title, list);
+      } else {
+        testSummary.textContent = "No se realizó ninguna prueba. Este resultado se basa únicamente en los síntomas y los demás datos proporcionados.";
+      }
+      resultPanel.append(testSummary);
+
+      if (data.diagnosticos.length) {
+        const list = document.createElement("div");
+        list.className = "diagnosis-list";
+        data.diagnosticos.forEach((item, index) => {
+          const card = document.createElement("article");
+          card.className = "diagnosis";
+          const headingRow = document.createElement("div");
+          headingRow.className = "diagnosis-head";
+          const title = document.createElement("h3");
+          title.textContent = `${index + 1}. ${displayNames[item.nombre] || item.nombre}`;
+          headingRow.append(title);
+          const meta = document.createElement("div");
+          meta.className = "meta";
+          meta.append(
+            createPill(`Severidad ${item.severidad}`, item.severidad),
+            createPill(`Certeza ${item.certeza}`),
+            createPill(`Evidencia ${item.cobertura}%`)
+          );
+          const action = document.createElement("p");
+          action.className = "action";
+          const label = document.createElement("strong");
+          label.textContent = "Acción recomendada: ";
+          action.append(label, document.createTextNode(item.accion));
+          card.append(headingRow, meta, action);
+          list.append(card);
+        });
+        resultPanel.append(list);
+      } else if (data.sospechosos.length) {
+        const text = document.createElement("p");
+        text.className = "helper";
+        text.textContent = "Aún no hay evidencia suficiente para confirmar una causa. Estos componentes presentan indicios:";
+        const list = document.createElement("ul");
+        list.className = "suspect-list";
+        data.sospechosos.forEach(({componente, indicios}) => {
+          const item = document.createElement("li");
+          const name = document.createElement("span");
+          name.textContent = componentNames[componente] || componente;
+          const count = document.createElement("strong");
+          count.textContent = `${indicios} indicio(s)`;
+          item.append(name, count);
+          list.append(item);
+        });
+        resultPanel.append(text, list);
+      } else {
+        const text = document.createElement("p");
+        text.className = "helper";
+        text.textContent = "Selecciona síntomas o agrega detalles para iniciar el diagnóstico.";
+        resultPanel.append(text);
+      }
+      if (data.descartados.length) {
+        const discarded = document.createElement("div");
+        discarded.className = "discarded";
+        discarded.textContent = `Condiciones no reconocidas: ${data.descartados.join(", ")}`;
+        resultPanel.append(discarded);
+      }
+      resultPanel.hidden = false;
+      resultPanel.scrollIntoView({behavior: "smooth", block: "start"});
+    }
+
+    async function loadSymptoms() {
+      const response = await fetch("/api/sintomas");
+      if (!response.ok) throw new Error("No se pudo cargar la lista de síntomas.");
+      renderSymptoms(await response.json());
+    }
+
+    form.addEventListener("submit", async (event) => {
+      event.preventDefault();
+      formError.hidden = true;
+      const button = $("#submit-button");
+      button.disabled = true;
+      button.textContent = "Analizando...";
+      const condiciones = {
+        sintomas: [...form.querySelectorAll('input[name="sintomas"]:checked')].map((item) => item.value),
+        temperatura: $("#temperatura-desconocida").checked ? "" : $("#temperatura").value,
+        pitidos: $("#pitidos-desconocidos").checked ? "" : $("#pitidos").value,
+        tipo_equipo: $("#tipo-equipo").value,
+        antiguedad: $("#antiguedad").value,
+        pruebas: $("#sin-pruebas").checked ? [] : [...testList.children].map((row) => ({
+          nombre: row.querySelectorAll("select")[0].value,
+          resultado: row.querySelectorAll("select")[1].value
+        })).filter((item) => item.nombre || item.resultado)
+      };
+      try {
+        const response = await fetch("/api/diagnosticar", {
+          method: "POST",
+          headers: {"Content-Type": "application/json"},
+          body: JSON.stringify(condiciones)
+        });
+        const data = await response.json();
+        if (!response.ok) throw new Error(data.error || "No se pudo generar el diagnóstico.");
+        renderResult(data, condiciones.pruebas);
+      } catch (error) {
+        formError.textContent = error.message;
+        formError.hidden = false;
+      } finally {
+        button.disabled = false;
+        button.innerHTML = 'Analizar síntomas <span aria-hidden="true">→</span>';
+      }
+    });
+
+    form.addEventListener("reset", () => {
+      window.setTimeout(() => {
+        syncOptionalFields();
+        testList.replaceChildren();
+        syncTestOptions();
+        resultPanel.hidden = true;
+        formError.hidden = true;
+      }, 0);
+    });
+    $("#temperatura-desconocida").addEventListener("change", syncOptionalFields);
+    $("#pitidos-desconocidos").addEventListener("change", syncOptionalFields);
+    $("#sin-pruebas").addEventListener("change", () => {
+      if ($("#sin-pruebas").checked) testList.replaceChildren();
+      syncTestOptions();
+    });
+    $("#add-test").addEventListener("click", addTestRow);
+    syncTestOptions();
+
+    loadSymptoms().catch((error) => {
+      symptomGrid.textContent = error.message;
+      formError.textContent = error.message;
+      formError.hidden = false;
+    });
+  </script>
+</body>
+</html>
