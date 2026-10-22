@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 # HardDiag
 
 Sistema experto para orientar el diagnóstico de fallas de hardware en computadores de escritorio y portátiles. El usuario informa síntomas y, si los conoce, mediciones y resultados de pruebas; el motor de inferencia en SWI-Prolog aplica reglas y devuelve diagnósticos ordenados por prioridad.
@@ -216,3 +217,7 @@ Confirma que `py web_app.py` sigue ejecutándose y que abriste `http://127.0.0.1
 HardDiag orienta sobre fallas de hardware de computadores personales. No diagnostica problemas de software, sistemas operativos, virus, redes, impresoras, servidores, teléfonos o consolas. Tampoco determina daños por líquidos o golpes ni reemplaza una evaluación técnica presencial.
 
 Las conclusiones dependen de los síntomas y pruebas que informe la persona. Un resultado es una orientación basada en reglas, no una garantía de que el componente indicado sea la causa real.
+=======
+# Sistema-Experto-de-Diagn-stico-y-Soporte-T-cnico-para-Fallos-de-Hardware-
+El sistema resuelve un problema de diagnóstico: identificar qué componente de hardware de un computador está fallando a partir de los síntomas que observa el usuario, y recomendar la acción correcta.
+>>>>>>> origin/main
