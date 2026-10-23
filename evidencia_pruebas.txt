@@ -120,5 +120,11 @@ Obtenido :
 Resultado: APROBADO
 
 ========================================================================
- RESUMEN: 9 de 9 casos aprobados
+  Diagnóstico con explicación: APROBADO
+  Síntomas insuficientes y sugerencia: APROBADO
+  Varias hipótesis posibles: APROBADO
+  Prueba recomendada para RAM: APROBADO
+  Entrada válida sin diagnóstico: APROBADO
+ INTEGRACIÓN: 5 de 5 casos aprobados
+ RESUMEN: 14 de 14 casos aprobados
 ========================================================================

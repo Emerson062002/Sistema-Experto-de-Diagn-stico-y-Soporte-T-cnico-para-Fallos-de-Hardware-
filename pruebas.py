@@ -3,9 +3,9 @@ pruebas.py
 ==========
 Script de pruebas por consola del Sistema Experto de Diagnóstico de Hardware.
 
-Ejecuta 8 casos de prueba hacia Prolog (vía motor_inferencia.py) y, para cada
-uno, documenta: objetivo, entrada, consulta en Prolog, resultado esperado y
-resultado obtenido. Guarda toda la salida en ``evidencia_pruebas.txt``.
+Ejecuta nueve casos base y cinco verificaciones de integración para diagnóstico,
+explicabilidad y sugerencias de datos faltantes. Guarda la salida en
+``evidencia_pruebas.txt``.
 
 Ejecución:  python pruebas.py
 Código de salida: 0 si todos los casos pasan, 1 si alguno falla.
@@ -191,10 +191,112 @@ def ejecutar():
         for d in diferencias:
             print(f"    ! {d}")
     print("\n" + "=" * 72)
-    print(f" RESUMEN: {aprobados} de {len(CASOS)} casos aprobados")
+    integraciones_aprobadas = evaluar_integraciones(motor)
+    aprobados += integraciones_aprobadas
+    total_casos = len(CASOS) + 5
+    print(f" INTEGRACIÓN: {integraciones_aprobadas} de 5 casos aprobados")
+    print(f" RESUMEN: {aprobados} de {total_casos} casos aprobados")
     print("=" * 72)
-    if aprobados != len(CASOS):
+    if aprobados != total_casos:
         sys.exit(1)
+
+
+def evaluar_integraciones(motor):
+    """Comprueba los cinco escenarios del entregable Streamlit/explicabilidad."""
+    casos = [
+        (
+            "Diagnóstico con explicación",
+            lambda: _caso_diagnostico_explicable(motor),
+        ),
+        (
+            "Síntomas insuficientes y sugerencia",
+            lambda: _caso_informacion_insuficiente(motor),
+        ),
+        (
+            "Varias hipótesis posibles",
+            lambda: _caso_hipotesis_ambiguas(motor),
+        ),
+        (
+            "Prueba recomendada para RAM",
+            lambda: _caso_sugerencia_ram(motor),
+        ),
+        (
+            "Entrada válida sin diagnóstico",
+            lambda: _caso_sin_diagnostico(motor),
+        ),
+    ]
+    aprobados = 0
+    for nombre, comprobar in casos:
+        try:
+            ok = comprobar()
+        except Exception as error:
+            ok = False
+            print(f"  Error en {nombre}: {error}")
+        aprobados += ok
+        print(f"  {nombre}: {'APROBADO' if ok else 'FALLIDO'}")
+    return aprobados
+
+
+def _caso_diagnostico_explicable(motor):
+    respuesta = motor.analizar_caso([
+        "no_enciende",
+        "olor_quemado",
+        "prueba(fuente_con_probador, falla)",
+    ])
+    if respuesta.estado != "ok" or not respuesta.diagnosticos:
+        return False
+    explicacion = respuesta.explicaciones[0]
+    return (
+        respuesta.diagnosticos[0].nombre == "fuente_poder_defectuosa"
+        and {"R1", "R9", "R21"}.issubset(explicacion.reglas)
+        and any("prueba(fuente_con_probador, falla)" in hecho for hecho in explicacion.hechos)
+        and any("\\+" in negacion for negacion in explicacion.negaciones)
+    )
+
+
+def _caso_informacion_insuficiente(motor):
+    respuesta = motor.analizar_caso(["pantalla_negra"])
+    return (
+        respuesta.estado == "datos_insuficientes"
+        and not respuesta.diagnosticos
+        and bool(respuesta.sugerencias)
+    )
+
+
+def _caso_hipotesis_ambiguas(motor):
+    respuesta = motor.analizar_caso(["pantalla_negra", "ventiladores_giran"])
+    hipotesis = {
+        nombre
+        for sugerencia in respuesta.sugerencias
+        for nombre in sugerencia.hipotesis
+    }
+    return (
+        respuesta.estado == "datos_insuficientes"
+        and {"cable_o_monitor_defectuoso", "gpu_defectuosa"}.issubset(hipotesis)
+    )
+
+
+def _caso_sugerencia_ram(motor):
+    respuesta = motor.analizar_caso(["pantalla_azul"])
+    return (
+        bool(respuesta.sugerencias)
+        and any("RAM" in sugerencia.dato for sugerencia in respuesta.sugerencias)
+        and any("R14" in sugerencia.razon or "R15" in sugerencia.razon
+                for sugerencia in respuesta.sugerencias)
+    )
+
+
+def _caso_sin_diagnostico(motor):
+    respuesta = motor.analizar_caso(["led_encendido"])
+    return (
+        respuesta.estado == "datos_insuficientes"
+        and not respuesta.diagnosticos
+        and any(
+            explicacion.nombre == "sin_diagnostico"
+            and "R25" in explicacion.reglas
+            for explicacion in respuesta.explicaciones
+        )
+    )
 
 
 if __name__ == "__main__":

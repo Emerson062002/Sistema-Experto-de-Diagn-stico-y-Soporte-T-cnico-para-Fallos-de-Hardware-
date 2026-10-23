@@ -58,16 +58,18 @@ Estados posibles de una consulta: `ok`, `datos_insuficientes`, `entrada_vacia` y
 | `ficha_proyecto.md` | Esta ficha. |
 | `base_conocimiento.pl` | Exactamente 45 hechos y 25 reglas de inferencia numeradas (R1–R25), con inferencia en 3 niveles, listas, cortes, negación, `findall` y severidad. |
 | `motor_inferencia.py` | Puente Python–Prolog (PySwip). |
-| `main.py` | Consola interactiva. |
+| `main.py` | Interfaz gráfica Streamlit conectada con SWI-Prolog mediante PySwip. |
+| `main_consola.py` | Interfaz interactiva original por consola. |
 | `web_app.py` | Servidor local para la interfaz web. |
 | `index.html` | Interfaz web del sistema experto. |
-| `pruebas.py` | 9 casos de prueba hacia Prolog. |
+| `pruebas.py` | 9 casos base y 5 comprobaciones de integración, trazas y sugerencias. |
 | `evidencia_pruebas.txt` | Salida de la ejecución de `pruebas.py`. |
 | `diccionario_predicados.md` | Diccionario de predicados. |
 
 ## 4. Cómo ejecutar
 
-1. Instalar SWI-Prolog y las dependencias de Python: `pip install -r requirements.txt`.
-2. Interfaz web: `py web_app.py` y abrir `http://127.0.0.1:8000` en el navegador.
-3. Consola interactiva: `py main.py`.
-4. Pruebas: `py pruebas.py` (genera `evidencia_pruebas.txt`).
+1. Instalar SWI-Prolog y agregarlo al `PATH`.
+2. Instalar las dependencias: `py -m pip install -r requirements.txt`.
+3. Interfaz Streamlit: `py -m streamlit run main.py`.
+4. Consola interactiva: `py main_consola.py`.
+5. Pruebas: `py pruebas.py` (genera `evidencia_pruebas.txt`).

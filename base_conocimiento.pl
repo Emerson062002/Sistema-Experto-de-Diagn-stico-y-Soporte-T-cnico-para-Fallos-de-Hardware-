@@ -772,3 +772,367 @@ texto_a_lista(Texto, Lista) :-
 % listar_sintomas(-Lista)  ->  [[Sintoma, Descripcion], ...]
 listar_sintomas(Lista) :-
     findall([S, D], sintoma_catalogo(S, D), Lista).
+
+%% -----------------------------------------------------------------------------
+%%  F. EXPLICABILIDAD Y DATOS FALTANTES
+%%  Las trazas solo se producen después de que diagnostico/3 tuvo éxito. Cada
+%%  ruta vuelve a comprobar las reglas intermedias que justifican el diagnóstico.
+%% -----------------------------------------------------------------------------
+
+% analizar_caso(+Entrada, -Reporte)
+% Reporte = [Estado, Diagnosticos, Sospechosos, Descartados,
+%            Explicaciones, Sugerencias]
+analizar_caso(Entrada, [entrada_invalida, [], [], [], [], []]) :-
+    \+ is_list(Entrada), !.
+analizar_caso([], [entrada_vacia, [], [], [], [], Sugerencias]) :-
+    !,
+    sugerencia_entrada_vacia(Sugerencias).
+analizar_caso(Entrada, Reporte) :-
+    validar_entrada(Entrada, Validos, Descartados),
+    setup_call_cleanup(
+        cargar_caso(caso_tmp, Validos),
+        reporte_cargado(caso_tmp, Validos, Descartados, Reporte),
+        limpiar_caso(caso_tmp)).
+
+reporte_cargado(Id, Validos, Descartados,
+                [Estado, Diagnosticos, Sospechosos, DescartadosTexto,
+                 Explicaciones, Sugerencias]) :-
+    ( Validos = []
+    -> Estado = entrada_invalida,
+       Diagnosticos = [],
+       Sospechosos = [],
+       Explicaciones = [],
+       Sugerencias = []
+    ; recolectar_diagnosticos(Id, Validos, Diagnosticos),
+      estado_caso(Diagnosticos, Estado),
+      recolectar_sospechas(Id, Sospechosos),
+      ( Diagnosticos = []
+      -> explicacion_sin_diagnostico(Id, Validos, Explicaciones),
+         sugerencias_faltantes(Id, Validos, Sugerencias)
+      ; explicar_diagnosticos(Id, Validos, Diagnosticos, Explicaciones),
+        sugerencias_para_hipotesis(Id, Validos, Diagnosticos, Sugerencias)
+      )
+    ),
+    atomizar_descartados(Descartados, DescartadosTexto).
+
+atomizar_descartados(Items, Textos) :-
+    findall(Texto,
+            ( member(Item, Items), format(atom(Texto), '~w', [Item]) ),
+            Textos).
+
+explicar_diagnosticos(_, _, [], []).
+explicar_diagnosticos(Id, Validos, [[D, C, Sev, Prioridad, Cob, Accion]|Resto],
+                      [[D, C, Sev, Prioridad, Cob, Accion,
+                        Reglas, Hechos, Negaciones, Alternativas]|Explicaciones]) :-
+    traza_diagnostico(Id, D, Reglas),
+    hechos_comprobados(Id, Reglas, Hechos),
+    negaciones_comprobadas(Id, D, Reglas, Negaciones),
+    alternativas_descartadas(Id, Alternativas),
+    explicar_diagnosticos(Id, Validos, Resto, Explicaciones).
+
+traza_diagnostico(Id, fuente_poder_defectuosa, Reglas) :-
+    sin_energia(Id),
+    falla_energia(Id),
+    ( prueba(Id, fuente_con_probador, falla)
+    -> Reglas = ['R1', 'R9', 'R21']
+    ; Reglas = ['R1', 'R9b', 'R21']
+    ).
+traza_diagnostico(Id, cable_o_monitor_defectuoso, ['R2', 'R10', 'R21']) :-
+    falla_cable_o_monitor(Id).
+traza_diagnostico(Id, gpu_defectuosa, ['R2', 'R6', 'R11', 'R21']) :-
+    falla_video_interno(Id).
+traza_diagnostico(Id, placa_base_defectuosa,
+                  ['R1', 'R4', 'R19', 'R20', 'R21']) :-
+    placa_base_defectuosa(Id).
+traza_diagnostico(Id, refrigeracion_deficiente, Reglas) :-
+    falla_refrigeracion(Id),
+    ( factor_riesgo(Id)
+    -> Reglas = ['R3', 'R8', 'R12', 'R21']
+    ; Reglas = ['R3', 'R12', 'R21']
+    ).
+traza_diagnostico(Id, ram_mal_asentada, Reglas) :-
+    memoria_mal_asentada(Id),
+    traza_memoria(Id, Reglas, ['R14', 'R21']).
+traza_diagnostico(Id, ram_defectuosa, Reglas) :-
+    memoria_defectuosa(Id),
+    traza_memoria(Id, Reglas, ['R15', 'R21']).
+traza_diagnostico(Id, disco_fallando, ['R6', 'R16', 'R21']) :-
+    almacenamiento_degradado(Id).
+traza_diagnostico(Id, bateria_cmos_agotada, ['R7', 'R17', 'R21']) :-
+    bateria_cmos_agotada(Id).
+
+traza_memoria(Id, Reglas, ReglasFinales) :-
+    ( pitidos_error(Id, memoria_ram)
+    -> Reglas = ['R4', 'R13'|ReglasFinales]
+    ; inestabilidad(Id),
+      sintoma_de(Id, memoria_ram),
+      \+ pitidos_error(Id, memoria_ram),
+      Reglas = ['R5', 'R6', 'R13'|ReglasFinales]
+    ).
+
+hechos_comprobados(Id, Reglas, Hechos) :-
+    findall(Texto, hecho_observado(Id, Texto), Observados),
+    findall(Texto, hecho_medicion(Id, Texto), Mediciones),
+    findall(Texto, hecho_pitido(Id, Texto), Pitidos),
+    findall(Texto, hecho_prueba(Id, Texto), Pruebas),
+    findall(Texto, hecho_equipo(Id, Texto), Equipos),
+    findall(Texto,
+            ( member(Regla, ['R6', 'R11', 'R13', 'R16']),
+              memberchk(Regla, Reglas),
+              hecho_asociacion_sintoma(Id, Texto)
+            ),
+            Asociaciones),
+    findall(Texto,
+            ( memberchk('R4', Reglas), hecho_asociacion_pitido(Id, Texto) ),
+            Codigos),
+    findall(Texto, umbral_traza(Reglas, Id, Texto), Umbrales),
+    append([Observados, Mediciones, Pitidos, Pruebas, Equipos,
+            Asociaciones, Codigos, Umbrales], Hechos).
+
+hecho_observado(Id, Texto) :-
+    observado(Id, Sintoma),
+    format(atom(Texto), 'observado(~w)', [Sintoma]).
+hecho_medicion(Id, Texto) :-
+    medicion(Id, temp_cpu, Valor),
+    format(atom(Texto), 'temp_cpu(~w °C)', [Valor]).
+hecho_pitido(Id, Texto) :-
+    pitidos(Id, Patron),
+    format(atom(Texto), 'pitidos(~w)', [Patron]).
+hecho_prueba(Id, Texto) :-
+    prueba(Id, Nombre, Resultado),
+    format(atom(Texto), 'prueba(~w, ~w)', [Nombre, Resultado]).
+hecho_equipo(Id, Texto) :-
+    equipo(Id, Tipo, Anios),
+    Tipo \== desconocido,
+    format(atom(Texto), 'equipo(~w, ~w años)', [Tipo, Anios]).
+hecho_asociacion_sintoma(Id, Texto) :-
+    observado(Id, Sintoma),
+    sintoma_componente(Sintoma, Componente),
+    format(atom(Texto), 'sintoma_componente(~w, ~w)', [Sintoma, Componente]).
+hecho_asociacion_pitido(Id, Texto) :-
+    pitidos(Id, Patron),
+    codigo_pitido(Patron, Componente),
+    format(atom(Texto), 'codigo_pitido(~w, ~w)', [Patron, Componente]).
+umbral_traza(Reglas, Id, Texto) :-
+    memberchk('R3', Reglas),
+    medicion(Id, temp_cpu, _),
+    umbral(temp_cpu_max_celsius, Umbral),
+    format(atom(Texto), 'umbral(temp_cpu_max_celsius, ~w)', [Umbral]).
+umbral_traza(Reglas, Id, Texto) :-
+    memberchk('R7', Reglas),
+    equipo(Id, _, Anios),
+    Anios > 0,
+    umbral(antiguedad_critica_anios, Umbral),
+    format(atom(Texto), 'umbral(antiguedad_critica_anios, ~w)', [Umbral]).
+
+negaciones_comprobadas(Id, Diagnostico, Reglas, Negaciones) :-
+    findall(Texto, negacion_traza(Id, Diagnostico, Reglas, Texto), Negaciones).
+
+negacion_traza(Id, Diagnostico, Reglas, Texto) :-
+    memberchk('R21', Reglas),
+    \+ descartado(Id, Diagnostico),
+    format(atom(Texto),
+           'R21: \\+ descartado(~w) tuvo éxito; no se encontró una prueba contradictoria.',
+           [Diagnostico]).
+negacion_traza(Id, _, Reglas, Texto) :-
+    memberchk('R1', Reglas),
+    \+ observado(Id, led_encendido),
+    format(atom(Texto),
+           'R1: \\+ observado(led_encendido) tuvo éxito; no se reportó un LED encendido.',
+           []).
+negacion_traza(Id, fuente_poder_defectuosa, Reglas, Texto) :-
+    memberchk('R9b', Reglas),
+    \+ prueba(Id, fuente_con_probador, falla),
+    format(atom(Texto),
+           'R9b: \\+ prueba(fuente_con_probador, falla) tuvo éxito.',
+           []).
+negacion_traza(Id, ram_defectuosa, Reglas, Texto) :-
+    memberchk('R13', Reglas),
+    \+ pitidos_error(Id, memoria_ram),
+    format(atom(Texto),
+           'R13: \\+ pitidos_error(memoria_ram) tuvo éxito; la sospecha provino de inestabilidad y síntomas de RAM.',
+           []).
+negacion_traza(Id, ram_mal_asentada, Reglas, Texto) :-
+    memberchk('R13', Reglas),
+    \+ pitidos_error(Id, memoria_ram),
+    format(atom(Texto),
+           'R13: \\+ pitidos_error(memoria_ram) tuvo éxito; la sospecha provino de inestabilidad y síntomas de RAM.',
+           []).
+
+alternativas_descartadas(Id, Alternativas) :-
+    findall(Texto,
+            ( descartado(Id, Diagnostico),
+              prueba(Id, Nombre, Resultado),
+              razon_descartado(Diagnostico, Nombre, Resultado, Razon),
+              format(atom(Texto), '~w: ~w', [Diagnostico, Razon])
+            ),
+            Alternativas).
+
+razon_descartado(fuente_poder_defectuosa, fuente_con_probador, ok,
+                 'la prueba del probador indicó que la fuente pasó').
+razon_descartado(gpu_defectuosa, gpu_en_otro_equipo, ok,
+                 'la tarjeta gráfica funcionó en otro equipo').
+razon_descartado(disco_fallando, smart_disco, ok,
+                 'la revisión SMART no detectó falla').
+razon_descartado(bateria_cmos_agotada, cambio_bateria, no_resuelve,
+                 'cambiar la batería no resolvió el problema').
+
+explicacion_sin_diagnostico(Id, Validos,
+    [[sin_diagnostico, '', '', 0, 0, '', ['R25'], Hechos, [Negacion], []]]) :-
+    sin_diagnostico(Id),
+    hechos_comprobados(Id, ['R25'], Hechos),
+    format(atom(Negacion),
+           'R25: \\+ diagnostico(~w, _, _) tuvo éxito; ninguna conclusión final se derivó.',
+           [Id]),
+    Validos = [_|_].
+
+sugerencias_faltantes(Id, Validos, Sugerencias) :-
+    findall(D,
+            ( candidato_diagnostico(Id, Validos, D),
+              \+ diagnostico(Id, D, _),
+              \+ descartado(Id, D)
+            ),
+            CandidatosDuplicados),
+    sort(CandidatosDuplicados, Candidatos),
+    ( Candidatos = []
+    -> sugerencias_generales(Validos, Sugerencias)
+    ; construir_sugerencias(Candidatos, Validos, Sugerencias)
+    ).
+
+sugerencias_para_hipotesis(Id, Validos, Diagnosticos, Sugerencias) :-
+    ( Diagnosticos = [_,_|_]
+    -> findall(D,
+               ( candidato_diagnostico(Id, Validos, D),
+                 \+ descartado(Id, D)
+               ),
+               CandidatosDuplicados),
+       sort(CandidatosDuplicados, Candidatos),
+       construir_sugerencias(Candidatos, Validos, Sugerencias)
+    ; Sugerencias = []
+    ).
+
+candidato_diagnostico(Id, Validos, Diagnostico) :-
+    componente_diagnostico(Diagnostico, Componente),
+    sintoma_de(Id, Componente),
+    Validos \= [].
+candidato_diagnostico(_, Validos, Diagnostico) :-
+    evidencia_tipica(Diagnostico, Evidencias),
+    member(Evidencia, Evidencias),
+    evidencia_presente(Evidencia, Validos).
+
+componente_diagnostico(fuente_poder_defectuosa, fuente_poder).
+componente_diagnostico(cable_o_monitor_defectuoso, tarjeta_video).
+componente_diagnostico(gpu_defectuosa, tarjeta_video).
+componente_diagnostico(placa_base_defectuosa, placa_base).
+componente_diagnostico(refrigeracion_deficiente, procesador).
+componente_diagnostico(ram_mal_asentada, memoria_ram).
+componente_diagnostico(ram_defectuosa, memoria_ram).
+componente_diagnostico(disco_fallando, almacenamiento).
+componente_diagnostico(bateria_cmos_agotada, placa_base).
+
+construir_sugerencias([], _, []).
+construir_sugerencias(Candidatos, Validos, Sugerencias) :-
+    findall(Clave, (member(D, Candidatos), dato_recomendado(D, Clave, _, _, _),
+                    \+ dato_ya_informado(Clave, Validos)), ClavesDuplicadas),
+    sort(ClavesDuplicadas, Claves),
+    findall(Prioridad-[Descripcion, Razon, Hipotesis],
+            ( member(Clave, Claves),
+              findall(D, (member(D, Candidatos),
+                          dato_recomendado(D, Clave, _, _, _)), Hipotesis),
+              once(dato_recomendado(Dato, Clave, Descripcion, Razon, Base)),
+              memberchk(Dato, Hipotesis),
+              length(Hipotesis, Cantidad),
+              Prioridad is Base + Cantidad * 10
+            ),
+            Pares),
+    sort(1, @>=, Pares, Ordenadas),
+    tomar_sugerencias(Ordenadas, 5, Sugerencias).
+
+tomar_sugerencias([], _, []).
+tomar_sugerencias(_, 0, []) :- !.
+tomar_sugerencias([_-Sugerencia|Resto], N, [Sugerencia|Sugerencias]) :-
+    N > 0,
+    N1 is N - 1,
+    tomar_sugerencias(Resto, N1, Sugerencias).
+
+dato_ya_informado(cambio_cable, Validos) :-
+    member(prueba(cambio_cable, _), Validos).
+dato_ya_informado(otro_monitor, Validos) :-
+    member(prueba(otro_monitor, _), Validos).
+dato_ya_informado(fuente_con_probador, Validos) :-
+    member(prueba(fuente_con_probador, _), Validos).
+dato_ya_informado(gpu_en_otro_equipo, Validos) :-
+    member(prueba(gpu_en_otro_equipo, _), Validos).
+dato_ya_informado(reasentar_ram, Validos) :-
+    member(prueba(reasentar_ram, _), Validos).
+dato_ya_informado(smart_disco, Validos) :-
+    member(prueba(smart_disco, _), Validos).
+dato_ya_informado(cambio_bateria, Validos) :-
+    member(prueba(cambio_bateria, _), Validos).
+dato_ya_informado(temperatura, Validos) :-
+    member(temp_cpu(_), Validos).
+dato_ya_informado(patron_pitidos, Validos) :-
+    member(pitidos(_), Validos).
+dato_ya_informado(antiguedad, Validos) :-
+    member(equipo(_, _), Validos).
+
+dato_recomendado(cable_o_monitor_defectuoso, cambio_cable,
+    'Prueba: cambia el cable de video y registra si resuelve el problema.',
+    'R10 utiliza esta prueba para confirmar una falla externa; si no resuelve, ayuda a diferenciarla de una falla interna de video.',
+    100).
+dato_recomendado(gpu_defectuosa, cambio_cable,
+    'Prueba: cambia el cable de video y registra si resuelve el problema.',
+    'R10 y R11 distinguen entre una falla externa y una posible falla interna de video.',
+    100).
+dato_recomendado(gpu_defectuosa, otro_monitor,
+    'Prueba: conecta otro monitor y registra el resultado.',
+    'R11 requiere que el cambio de monitor tampoco resuelva la falta de imagen.',
+    75).
+dato_recomendado(fuente_poder_defectuosa, fuente_con_probador,
+    'Prueba: revisa la fuente con un probador y registra si falla o pasa.',
+    'R9 evalúa la falla de la fuente; si pasa la prueba, evita ese diagnóstico.',
+    95).
+dato_recomendado(placa_base_defectuosa, fuente_con_probador,
+    'Prueba: revisa la fuente con un probador y registra si falla o pasa.',
+    'R19 solo considera la placa base en esta ruta cuando la fuente pasó la prueba.',
+    95).
+dato_recomendado(placa_base_defectuosa, patron_pitidos,
+    'Dato: indica el patrón de pitidos al encender, si lo escuchas.',
+    'R4 y R19 relacionan el código de pitidos con una posible falla de placa base.',
+    80).
+dato_recomendado(ram_mal_asentada, reasentar_ram,
+    'Prueba: vuelve a colocar la RAM y registra si el problema se resuelve.',
+    'R14 y R15 distinguen una RAM mal asentada de una RAM posiblemente defectuosa.',
+    95).
+dato_recomendado(ram_defectuosa, reasentar_ram,
+    'Prueba: vuelve a colocar la RAM y registra si el problema se resuelve.',
+    'R14 y R15 distinguen una RAM mal asentada de una RAM posiblemente defectuosa.',
+    95).
+dato_recomendado(disco_fallando, smart_disco,
+    'Prueba: consulta el estado SMART del disco y registra si indica falla.',
+    'R16 usa el resultado SMART junto con síntomas de almacenamiento.',
+    95).
+dato_recomendado(refrigeracion_deficiente, temperatura,
+    'Dato: proporciona la temperatura del procesador en °C, si puedes consultarla.',
+    'R3 y R12 necesitan comprobar sobrecalentamiento y una anomalía de ventilación.',
+    85).
+dato_recomendado(refrigeracion_deficiente, ventilador,
+    'Dato: indica si el ventilador hace ruido o dejó de girar.',
+    'R12 combina sobrecalentamiento con un ventilador ruidoso o detenido.',
+    80).
+dato_recomendado(bateria_cmos_agotada, antiguedad,
+    'Dato: indica el tipo y la antigüedad aproximada del equipo.',
+    'R7 y R17 necesitan comprobar que el equipo alcanzó el umbral de antigüedad.',
+    75).
+
+sugerencias_generales(Validos, [[Descripcion, Razon, []]]) :-
+    memberchk(led_encendido, Validos), !,
+    Descripcion = 'Añade cualquier otro síntoma observable del catálogo.',
+    Razon = 'R6 relaciona síntomas observados con componentes; el LED por sí solo no identifica una causa en las reglas actuales.'.
+sugerencias_generales(_, [[Descripcion, Razon, []]]) :-
+    Descripcion = 'Selecciona uno o más síntomas observables del catálogo.',
+    Razon = 'La base de conocimiento necesita síntomas u otros datos de entrada para evaluar sus reglas de diagnóstico.'.
+
+sugerencia_entrada_vacia([[Descripcion, Razon, []]]) :-
+    Descripcion = 'Selecciona al menos un síntoma observable para iniciar el diagnóstico.',
+    Razon = 'Sin condiciones de entrada, Prolog no puede comprobar ninguna regla de diagnóstico.'.

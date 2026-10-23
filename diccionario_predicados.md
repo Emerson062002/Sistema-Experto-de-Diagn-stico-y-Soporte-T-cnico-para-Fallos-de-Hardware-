@@ -14,6 +14,7 @@ Archivo de Prolog: `base_conocimiento.pl` · Puente Python: `motor_inferencia.py
 | `diagnosticar_todos/3` | `diagnosticar_todos(+Entrada, -Estado, -Diagnosticos)` | Recolecta en una sola lista, sin duplicados y ordenada por prioridad, todos los diagnósticos del caso. `Estado` es `ok`, `datos_insuficientes`, `entrada_vacia` o `entrada_invalida`. Cada diagnóstico es `[Nombre, Certeza, Severidad, Prioridad, Cobertura, Accion]`. | `MotorInferencia.diagnosticar_todos()` |
 | `componentes_sospechosos/2` | `componentes_sospechosos(+Entrada, -Sospechosos)` | Lista `[[Componente, Cantidad], ...]` de componentes con indicios (síntomas y pitidos), de mayor a menor. Sirve cuando faltan datos. | (vía `consultar_caso/2`) |
 | `listar_sintomas/1` | `listar_sintomas(-Lista)` | Devuelve el catálogo `[[Sintoma, Descripcion], ...]`. | `MotorInferencia.listar_sintomas()` |
+| `analizar_caso/2` | `analizar_caso(+Entrada, -Reporte)` | Devuelve estado, diagnósticos, sospechosos, entradas descartadas, trazas de Prolog y sugerencias de información adicional. | `MotorInferencia.analizar_caso()` |
 
 ## 2. Procesamiento de listas y control de flujo (3.2)
 
@@ -66,6 +67,14 @@ Archivo de Prolog: `base_conocimiento.pl` · Puente Python: `motor_inferencia.py
 | `prioridad/3` | `prioridad(+Peso, +Cobertura, -Prioridad)` | `Prioridad = Peso × 100 + Cobertura`. La severidad domina y la evidencia desempata. |
 | `recolectar_diagnosticos/3` | `recolectar_diagnosticos(+Id, +Validos, -Ordenados)` | Usa `findall/3`, `sort/2` (elimina duplicados) y `sort/4` (ordena por prioridad). |
 | `estado_caso/2` | `estado_caso(+Diagnosticos, -Estado)` | `datos_insuficientes` si la lista está vacía; `ok` en otro caso (excluyentes con corte). |
+
+## 6. Explicabilidad y datos faltantes
+
+`analizar_caso/2` construye el reporte dentro de Prolog reutilizando los diagnósticos calculados por `diagnosticar_todos/3`. Cada explicación incluye las reglas cuya ruta intermedia tuvo éxito, los hechos positivos registrados en el caso, las negaciones por fallo que se comprobaron y las alternativas respaldadas por una prueba contradictoria.
+
+Las sugerencias se generan a partir de síntomas asociados a componentes, las evidencias típicas de los diagnósticos y el catálogo vigente de pruebas, temperaturas, pitidos y antigüedad. Si un dato ya fue informado, Prolog no lo recomienda de nuevo. La prioridad favorece el dato compartido por varias hipótesis posibles.
+
+Los predicados auxiliares de estas funciones están en la sección F de `base_conocimiento.pl`. El número académico de reglas de inferencia sigue siendo R1–R25; los auxiliares de reporte no se cuentan como reglas de diagnóstico R26 en adelante.
 
 ## 5. Hechos principales (base)
 

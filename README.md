@@ -1,223 +1,172 @@
-<<<<<<< HEAD
 # HardDiag
 
-Sistema experto para orientar el diagnóstico de fallas de hardware en computadores de escritorio y portátiles. El usuario informa síntomas y, si los conoce, mediciones y resultados de pruebas; el motor de inferencia en SWI-Prolog aplica reglas y devuelve diagnósticos ordenados por prioridad.
+Sistema experto universitario para orientar el diagnóstico de fallas de hardware en computadores. La interfaz Streamlit recibe y valida los datos; el motor SWI-Prolog aplica las reglas, explica las conclusiones y recomienda la información adicional que ayudaría a distinguir hipótesis.
 
-> HardDiag es una herramienta educativa de orientación. No reemplaza una revisión profesional. Ante olor a quemado, apaga y desconecta el equipo; no abras la fuente de poder.
+> HardDiag es un proyecto educativo, no sustituye una revisión profesional. Si hay olor a quemado, apaga y desconecta el computador. No abras la fuente de poder.
 
-## Contenido
+## Requisitos
 
-- [Funciones](#funciones)
-- [Tecnologías y requisitos](#tecnologías-y-requisitos)
-- [Instalación en Windows](#instalación-en-windows)
-- [Ejecutar la interfaz web](#ejecutar-la-interfaz-web)
-- [Usar el diagnóstico web](#usar-el-diagnóstico-web)
-- [Ejecutar la consola](#ejecutar-la-consola)
-- [Ejecutar las pruebas](#ejecutar-las-pruebas)
-- [Arquitectura y archivos](#arquitectura-y-archivos)
-- [Base de conocimiento](#base-de-conocimiento)
-- [Solución de problemas](#solución-de-problemas)
-- [Alcance y limitaciones](#alcance-y-limitaciones)
+- Windows 10/11.
+- Python 3.10 o posterior.
+- SWI-Prolog instalado y disponible para PySwip.
+- Navegador web moderno.
 
-## Funciones
+## Instalación
 
-- Interfaz web en español adaptable a computadores y celulares.
-- Diagnósticos basados en exactamente 45 hechos y 25 reglas de inferencia, organizadas en tres niveles.
-- Resultados con certeza, severidad, prioridad, cobertura de evidencia y acción recomendada.
-- Lista de componentes sospechosos cuando faltan datos para confirmar un diagnóstico.
-- La temperatura del procesador y el patrón de pitidos son opcionales.
-- La persona puede marcar **«No hice ninguna prueba»** y consultar sin registrar pruebas.
-- Consola interactiva como alternativa a la página web.
-- Nueve casos de prueba que ejercitan diagnósticos, exclusiones y entradas incompletas.
+### 1. Instalar SWI-Prolog
 
-## Tecnologías y requisitos
-
-- Python 3.
-- SWI-Prolog instalado y disponible en el sistema.
-- PySwip, instalado desde `requirements.txt`.
-- Navegador web moderno para la interfaz web.
-
-No se necesita Node.js ni instalar dependencias de JavaScript.
-
-## Instalación en Windows
-
-Abre PowerShell en la carpeta del proyecto. Si ya estás en otra carpeta, cambia a la ruta correspondiente:
+Descárgalo e instálalo desde [swi-prolog.org](https://www.swi-prolog.org/download/stable). En el instalador de Windows, habilita la opción para agregar SWI-Prolog al `PATH` si está disponible. Abre una terminal nueva y verifica:
 
 ```powershell
-cd "C:\Users\EMERSON\OneDrive\Escritorio\proyecto de sistemas expertos\sistema_experto_hardware"
-```
-
-Comprueba que Python y SWI-Prolog estén disponibles:
-
-```powershell
-py --version
 swipl --version
 ```
 
-Si SWI-Prolog no está instalado, instálalo desde [swi-prolog.org](https://www.swi-prolog.org/download/stable). Luego instala las dependencias Python:
+PySwip utiliza la biblioteca compartida de SWI-Prolog. Si Python no logra localizarla, configura `PATH` para incluir la carpeta `bin` de SWI-Prolog y verifica la arquitectura compatible (Python y SWI-Prolog deben ser ambos de 64 bits o ambos de 32 bits). Después de modificar `PATH`, cierra y abre de nuevo Visual Studio Code.
+
+### 2. Instalar dependencias Python
+
+Abre la terminal integrada de VS Code en la carpeta del repositorio:
 
 ```powershell
+py --version
 py -m pip install -r requirements.txt
 ```
 
-En otros sistemas operativos, usa `python3` en lugar de `py` si ese es el comando de Python disponible.
-
-## Ejecutar la interfaz web
-
-Desde la carpeta del proyecto:
+La instalación directa equivalente solicitada es:
 
 ```powershell
-py web_app.py
+py -m pip install pyswip streamlit
 ```
 
-Abre esta dirección en el navegador:
+`requirements.txt` declara PySwip y Streamlit para repetir la instalación del proyecto. No se necesita Node.js.
 
-```text
-http://127.0.0.1:8000
-```
+## Ejecutar la interfaz Streamlit
 
-La aplicación funciona localmente en el computador donde se ejecuta el servidor. Mantén abierta la ventana de PowerShell mientras la usas. Para detenerla, presiona **Ctrl+C**.
-
-## Usar el diagnóstico web
-
-1. Selecciona los síntomas observados.
-2. En **Detalles adicionales**, proporciona la temperatura o el patrón de pitidos solo si los conoces. Las casillas para indicar que no conoces o no deseas proporcionar esos datos vienen seleccionadas; desmárcalas para habilitar los campos.
-3. Indica el tipo y la antigüedad del equipo si deseas. Estos campos también son opcionales.
-4. En **Pruebas realizadas**, deja seleccionada **«No hice ninguna prueba»** si no realizaste pruebas. Para añadir una, desmarca esa opción y pulsa **«Agregar una prueba»**.
-5. Pulsa **«Analizar síntomas»** para consultar el motor experto.
-
-El resultado muestra explícitamente si no se realizaron pruebas o, si se hicieron, cada prueba con el resultado indicado. También puede mostrar uno o más diagnósticos ordenados por prioridad. Si la evidencia no basta, mostrará los componentes sospechosos en lugar de afirmar una causa.
-
-### Datos que se pueden ingresar
-
-**Síntomas:** no enciende, apagados repentinos, olor a quemado, fecha u hora incorrecta, reinicios, problemas de ventilación, lentitud, pantalla azul, bloqueos, problemas de arranque o disco, pantalla negra y defectos de imagen, entre otros. La lista completa se carga directamente desde la base de conocimiento.
-
-**Temperatura:** un valor entero en grados Celsius, entre 0 y 150.
-
-**Patrones de pitidos:** tres cortos; uno largo y dos cortos; pitidos cortos repetidos; uno largo y tres cortos. Los códigos de pitidos son orientativos y pueden variar según el fabricante del BIOS.
-
-**Pruebas disponibles:** probador de fuente, cambio de cable, otro monitor, tarjeta gráfica en otro equipo, reasentar RAM, estado SMART del disco y cambio de batería CMOS. Cada prueba debe incluir uno de los resultados disponibles: falla, ok, resuelve o no_resuelve.
-
-## Ejecutar la consola
-
-Como alternativa a la web:
+Desde la carpeta que contiene `main.py` y `base_conocimiento.pl`:
 
 ```powershell
-py main.py
+py -m streamlit run main.py
 ```
 
-Escribe las condiciones separadas por comas. Por ejemplo:
+Streamlit muestra la dirección local en la terminal y abre el navegador. Normalmente es:
 
 ```text
-no_enciende, olor_quemado, prueba(fuente_con_probador, falla)
+http://localhost:8501
 ```
 
-Otros ejemplos:
+Para detener la aplicación, vuelve a la terminal y presiona **Ctrl+C**. No ejecutes `py main.py` para iniciar la interfaz; usa `streamlit run` como se indica.
+
+## Uso
+
+1. Selecciona síntomas del catálogo. También puedes escribir identificadores adicionales separados por coma; Python comprueba que existan en el catálogo antes de enviarlos.
+2. Si conoces la temperatura, indícala; de lo contrario, déjala vacía. El patrón de pitidos es opcional.
+3. El tipo y la antigüedad del equipo también son opcionales.
+4. Deja marcada **«No hice ninguna prueba»** si corresponde. Si desmarcas esa opción, selecciona las pruebas realizadas y su resultado. Las pruebas sin resultado no se envían como evidencia.
+5. Pulsa **«Analizar síntomas»**.
+
+El resultado contiene los diagnósticos calculados por Prolog (certeza, severidad, prioridad, evidencia y recomendación). Si faltan datos, muestra componentes sospechosos y el panel **«¿Qué falta?»** con pruebas o datos priorizados por las hipótesis compatibles. Abre **«¿Por qué?»** para ver las reglas comprobadas, los hechos del caso, las negaciones por fallo y las alternativas descartadas mediante pruebas.
+
+Los ejemplos de identificadores de síntomas incluyen:
 
 ```text
-temp_cpu(97), ventilador_ruidoso
+no_enciende
+pantalla_negra
+ventiladores_giran
+pantalla_azul
+olor_quemado
 ```
+
+Al ingresar síntomas en el campo de texto, utiliza sus identificadores de Prolog, no frases libres.
+
+## ¿Qué contiene el proyecto?
+
+| Archivo | Descripción |
+| --- | --- |
+| `base_conocimiento.pl` | Base Prolog con 45 hechos, reglas R1–R25, diagnósticos, trazas y sugerencias de información faltante. |
+| `motor_inferencia.py` | Adaptador PySwip: carga Prolog, envía entradas y convierte respuestas, explicaciones y sugerencias. |
+| `main.py` | Interfaz Streamlit principal. |
+| `main_consola.py` | Conserva la interfaz interactiva original por consola. |
+| `pruebas.py` | Nueve pruebas del motor y cinco verificaciones de integración, trazas y sugerencias. |
+| `evidencia_pruebas.txt` | Salida guardada por `pruebas.py`. |
+| `requirements.txt` | Dependencias Python del proyecto. |
+| `web_app.py`, `index.html` | Interfaz web HTTP anterior; se conserva como alternativa, pero el entregable Streamlit se ejecuta con `main.py`. |
+| `ficha_proyecto.md` | Ficha académica, alcance e integrantes. |
+| `diccionario_predicados.md` | Referencia de predicados Prolog. |
+
+## Arquitectura
 
 ```text
-pantalla_azul, prueba(reasentar_ram, resuelve)
+Formulario Streamlit (main.py)
+        ↓ datos limpios y validados
+Adaptador PySwip (motor_inferencia.py)
+        ↓ analizar_caso/2
+Base SWI-Prolog (base_conocimiento.pl)
+        ↓ diagnóstico, traza, exclusiones y sugerencias
+Presentación en Streamlit
 ```
 
-En la consola también puedes escribir:
+La inferencia, la explicación de las reglas y la priorización de datos faltantes se realizan en Prolog. Python se ocupa de la interfaz, la validación básica de los valores del formulario y la presentación de la respuesta.
 
-- `sintomas`: mostrar el catálogo de síntomas.
-- `ayuda`: volver a mostrar los formatos de entrada.
-- `salir`: cerrar el programa.
+## Base de conocimiento: hechos y reglas
 
-## Ejecutar las pruebas
+La base mantiene **exactamente 45 hechos** y las **25 reglas de inferencia identificadas como R1–R25**. Los catálogos relacionados están almacenados como hechos compactos para cumplir el conteo; reglas auxiliares permiten consultarlos. La traza informa reglas solo cuando la ruta Prolog correspondiente tuvo éxito. El panel de información faltante se basa en catálogos, evidencias típicas y pruebas que existen en la propia base.
 
-Desde PowerShell:
+Los componentes cubiertos son fuente de poder, placa base, procesador/refrigeración, memoria RAM, almacenamiento y tarjeta gráfica/video. Los diagnósticos incluyen fallas de fuente, video, placa base, refrigeración, RAM, disco y batería CMOS.
+
+## Ejecutar pruebas
 
 ```powershell
 py pruebas.py
 ```
 
-El comando ejecuta nueve casos y muestra cuántos fueron aprobados. También crea o actualiza `evidencia_pruebas.txt` con el detalle. El programa termina con código 0 si todas las pruebas pasan y con código 1 si alguna falla.
+El script conserva los nueve casos anteriores y agrega cinco comprobaciones de integración:
 
-Los casos cubren, entre otros:
+1. Diagnóstico suficiente con explicación de reglas y hechos.
+2. Síntomas insuficientes.
+3. Más de una hipótesis compatible.
+4. Recomendación de datos/prueba faltante.
+5. Entrada válida sin diagnóstico final.
 
-- Diagnóstico de fuente y severidad crítica.
-- Diagnósticos múltiples de almacenamiento y RAM.
-- Sobrecalentamiento.
-- Exclusión de causas mediante resultados de pruebas.
-- Datos insuficientes y condiciones desconocidas.
-- Entrada vacía.
-- Diagnóstico de placa base.
+El comando debe terminar con código 0 e informar todas las verificaciones aprobadas. También actualiza `evidencia_pruebas.txt`.
 
-## Arquitectura y archivos
+## Ejecutar la consola original
 
-| Archivo | Responsabilidad |
-| --- | --- |
-| `base_conocimiento.pl` | Hechos del dominio, casos de ejemplo, reglas de inferencia, validación y predicados de consulta. |
-| `motor_inferencia.py` | Puente PySwip entre Python y SWI-Prolog; convierte las respuestas para su presentación. |
-| `web_app.py` | Servidor HTTP local y API de la interfaz web; valida los datos recibidos antes de enviarlos a Prolog. |
-| `index.html` | Interfaz web, formulario y presentación de resultados. |
-| `main.py` | Interfaz interactiva por consola. |
-| `pruebas.py` | Casos automatizados que comprueban las respuestas del sistema. |
-| `evidencia_pruebas.txt` | Evidencia generada por la última ejecución de las pruebas. |
-| `diccionario_predicados.md` | Referencia de predicados, reglas y hechos de Prolog. |
-| `ficha_proyecto.md` | Definición, alcance e información de la entrega académica. |
-| `requirements.txt` | Dependencias Python. |
+La consola anterior se conserva en:
 
-Flujo de una consulta web:
-
-```text
-Formulario HTML → web_app.py → motor_inferencia.py / PySwip
-               → base_conocimiento.pl → resultado mostrado en la página
+```powershell
+py main_consola.py
 ```
-
-## Base de conocimiento
-
-La base cuenta con **exactamente 45 hechos** y **25 reglas de inferencia numeradas (R1–R25)**. Para conservar el catálogo completo dentro del límite, los datos relacionados (códigos de pitidos, pruebas, gravedades, acciones y evidencias) se guardan en hechos compactos de listas; las reglas auxiliares permiten consultar cada elemento. También hay ocho casos de ejemplo reutilizables con `caso_ejemplo/2`.
-
-Las reglas de inferencia se organizan en tres niveles:
-
-1. **Validación preliminar:** reconoce condiciones como falta de energía, ausencia de video, sobrecalentamiento, inestabilidad y señales de pitidos.
-2. **Inferencia intermedia:** combina síntomas y pruebas para determinar fallas probables, y descarta hipótesis contradichas por pruebas.
-3. **Conclusión final:** genera diagnósticos, recomendaciones y acciones de escalamiento.
-
-El sistema considera estos componentes: fuente de poder, placa base, procesador y refrigeración, memoria RAM, almacenamiento y tarjeta gráfica y video.
-
-Diagnósticos contemplados: fuente defectuosa, cable o monitor defectuoso, tarjeta gráfica defectuosa, placa base defectuosa, refrigeración deficiente, RAM mal asentada o defectuosa, disco fallando y batería CMOS agotada.
-
-Para ver las definiciones y consultas disponibles, revisa [diccionario_predicados.md](diccionario_predicados.md).
 
 ## Solución de problemas
 
-### `swipl` no se reconoce como comando
+### `swipl` no se reconoce
 
-Instala SWI-Prolog y comprueba que su carpeta esté agregada a `PATH`. Cierra y vuelve a abrir PowerShell después de instalarlo y ejecuta:
+Instala SWI-Prolog, comprueba su carpeta `bin` en `PATH`, reinicia VS Code y vuelve a comprobar:
 
 ```powershell
 swipl --version
 ```
 
-### No se encuentra PySwip
+### PySwip no encuentra SWI-Prolog
 
-Instala las dependencias desde la carpeta del proyecto:
+Verifica que SWI-Prolog está instalado, que `PATH` incluye su carpeta `bin`, que Python y SWI-Prolog tienen la misma arquitectura y que reiniciaste la terminal después del cambio. Reinstala dependencias si hace falta:
 
 ```powershell
 py -m pip install -r requirements.txt
 ```
 
-### El puerto 8000 ya está ocupado
+### Streamlit no se reconoce
 
-Cierra la instancia anterior de `py web_app.py` con **Ctrl+C**. Si otra aplicación está usando el puerto, detén esa aplicación o cambia la constante `PORT` en `web_app.py` y abre el nuevo puerto en el navegador.
+Ejecuta el módulo con el intérprete de Python:
 
-### No se puede abrir la página
+```powershell
+py -m streamlit run main.py
+```
 
-Confirma que `py web_app.py` sigue ejecutándose y que abriste `http://127.0.0.1:8000` en el mismo computador.
+### Error al abrir `base_conocimiento.pl`
+
+Ejecuta el comando desde la carpeta del proyecto. El motor también localiza la base respecto a `motor_inferencia.py`, por lo que no es necesario codificar una ruta absoluta.
 
 ## Alcance y limitaciones
 
-HardDiag orienta sobre fallas de hardware de computadores personales. No diagnostica problemas de software, sistemas operativos, virus, redes, impresoras, servidores, teléfonos o consolas. Tampoco determina daños por líquidos o golpes ni reemplaza una evaluación técnica presencial.
-
-Las conclusiones dependen de los síntomas y pruebas que informe la persona. Un resultado es una orientación basada en reglas, no una garantía de que el componente indicado sea la causa real.
-=======
-# Sistema-Experto-de-Diagn-stico-y-Soporte-T-cnico-para-Fallos-de-Hardware-
-El sistema resuelve un problema de diagnóstico: identificar qué componente de hardware de un computador está fallando a partir de los síntomas que observa el usuario, y recomendar la acción correcta.
->>>>>>> origin/main
+El sistema orienta sobre fallas de hardware de computadores personales. No diagnostica fallas de software, sistema operativo, virus, redes, impresoras, teléfonos o consolas, y no reemplaza pruebas físicas ni la evaluación de un técnico. Los códigos de pitidos pueden variar según el fabricante del BIOS.

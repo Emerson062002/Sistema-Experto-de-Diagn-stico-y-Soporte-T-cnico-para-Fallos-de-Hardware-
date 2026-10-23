@@ -17,6 +17,7 @@ RESPONSABILIDAD DE ESTE MÓDULO
 from __future__ import annotations
 
 import os
+from threading import RLock
 from dataclasses import dataclass, field
 from typing import Iterable
 
@@ -47,6 +48,31 @@ class Respuesta:
     diagnosticos: list[Diagnostico] = field(default_factory=list)
     sospechosos: list[tuple[str, int]] = field(default_factory=list)
     descartados: list[str] = field(default_factory=list)
+    explicaciones: list[ExplicacionDiagnostico] = field(default_factory=list)
+    sugerencias: list[Sugerencia] = field(default_factory=list)
+
+
+@dataclass
+class ExplicacionDiagnostico:
+    """Traza de reglas, hechos y exclusiones devuelta por Prolog."""
+    nombre: str
+    certeza: str
+    severidad: str
+    prioridad: int
+    cobertura: int
+    accion: str
+    reglas: list[str] = field(default_factory=list)
+    hechos: list[str] = field(default_factory=list)
+    negaciones: list[str] = field(default_factory=list)
+    alternativas_descartadas: list[str] = field(default_factory=list)
+
+
+@dataclass
+class Sugerencia:
+    """Dato o prueba priorizada por Prolog para completar el caso."""
+    dato: str
+    razon: str
+    hipotesis: list[str] = field(default_factory=list)
 
 
 # --------------------------------------------------------------------------- #
@@ -59,6 +85,7 @@ class MotorInferencia:
         if not os.path.isfile(ruta_base):
             raise FileNotFoundError(f"No se encontró la base de conocimiento: {ruta_base}")
         self._prolog = Prolog()
+        self._lock = RLock()
         # PySwip espera rutas con "/" aunque el sistema operativo sea Windows.
         list(self._prolog.query(f"consult('{ruta_base.replace(os.sep, '/')}')"))
 
@@ -75,7 +102,8 @@ class MotorInferencia:
 
     def _una_solucion(self, consulta: str) -> dict:
         """Ejecuta una consulta y devuelve su primera solución."""
-        soluciones = list(self._prolog.query(consulta, maxresult=1))
+        with self._lock:
+            soluciones = list(self._prolog.query(consulta, maxresult=1))
         if not soluciones:
             raise RuntimeError(f"Prolog no devolvió solución para: {consulta}")
         return soluciones[0]
@@ -105,6 +133,39 @@ class MotorInferencia:
         """Invoca ``consultar_caso(+Entrada, -Respuesta)`` con una lista."""
         consulta = f"consultar_caso({self._lista_prolog(items)}, R)"
         return self._a_respuesta(self._una_solucion(consulta)["R"])
+
+    def analizar_caso(self, items: Iterable[str]) -> Respuesta:
+        """Consulta el diagnóstico, la traza y datos faltantes en Prolog."""
+        consulta = f"analizar_caso({self._lista_prolog(items)}, R)"
+        crudo = self._una_solucion(consulta)["R"]
+        estado, diagnosticos, sospechosos, descartados, explicaciones, sugerencias = crudo
+        respuesta = self._a_respuesta(
+            [estado, diagnosticos, sospechosos, descartados]
+        )
+        respuesta.explicaciones = [
+            ExplicacionDiagnostico(
+                nombre=str(item[0]),
+                certeza=str(item[1]),
+                severidad=str(item[2]),
+                prioridad=int(item[3]),
+                cobertura=int(item[4]),
+                accion=str(item[5]),
+                reglas=[str(regla) for regla in item[6]],
+                hechos=[str(hecho) for hecho in item[7]],
+                negaciones=[str(negacion) for negacion in item[8]],
+                alternativas_descartadas=[str(alt) for alt in item[9]],
+            )
+            for item in explicaciones
+        ]
+        respuesta.sugerencias = [
+            Sugerencia(
+                dato=str(item[0]),
+                razon=str(item[1]),
+                hipotesis=[str(hipotesis) for hipotesis in item[2]],
+            )
+            for item in sugerencias
+        ]
+        return respuesta
 
     def diagnosticar_todos(self, items: Iterable[str]) -> tuple[str, list[Diagnostico]]:
         """Invoca ``diagnosticar_todos(+Entrada, -Estado, -Diagnosticos)``."""
