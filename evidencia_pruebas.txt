@@ -7,11 +7,11 @@ Caso 1: Normal 1 (diagnóstico único claro)
 Objetivo : Un solo diagnóstico claro, con severidad elevada por olor a quemado.
 Entrada  : no_enciende, olor_quemado, prueba(fuente_con_probador, falla)
 Consulta : consultar_texto('no_enciende, olor_quemado, prueba(fuente_con_probador, falla)', Respuesta).
-Esperado : estado = ok; diagnósticos = fuente_poder_defectuosa (critica)
+Esperado : estado = ok; diagnósticos = fuente_poder_defectuosa (critica); niveles de daño = grave
 Obtenido :
     Estado: ok - Diagnóstico generado.
     Diagnósticos (de mayor a menor prioridad):
-      1. fuente_poder_defectuosa  |  severidad: critica  |  certeza: alta  |  prioridad: 500  |  evidencia: 100%
+      1. fuente_poder_defectuosa  |  nivel de daño: grave  |  severidad: critica  |  certeza: alta  |  prioridad: 500  |  evidencia: 100%
          Acción: Desconectar el equipo y reemplazar la fuente de poder.
 Resultado: APROBADO
 
@@ -20,13 +20,13 @@ Caso 2: Normal 2 (múltiples diagnósticos / recolección)
 Objetivo : Recolectar dos diagnósticos distintos, sin duplicados y ordenados por prioridad (el de mayor severidad primero).
 Entrada  : pantalla_azul, bloqueos, pitidos(tres_cortos), prueba(reasentar_ram, no_resuelve), arranque_lento, ruido_clic, prueba(smart_disco, falla)
 Consulta : consultar_texto('pantalla_azul, bloqueos, pitidos(tres_cortos), prueba(reasentar_ram, no_resuelve), arranque_lento, ruido_clic, prueba(smart_disco, falla)', Respuesta).
-Esperado : estado = ok; diagnósticos = disco_fallando (alta), ram_defectuosa (media)
+Esperado : estado = ok; diagnósticos = disco_fallando (alta), ram_defectuosa (media); niveles de daño = grave, moderado
 Obtenido :
     Estado: ok - Diagnóstico generado.
     Diagnósticos (de mayor a menor prioridad):
-      1. disco_fallando  |  severidad: alta  |  certeza: alta  |  prioridad: 400  |  evidencia: 100%
+      1. disco_fallando  |  nivel de daño: grave  |  severidad: alta  |  certeza: alta  |  prioridad: 400  |  evidencia: 100%
          Acción: Respaldar la información de inmediato y reemplazar el disco.
-      2. ram_defectuosa  |  severidad: media  |  certeza: alta  |  prioridad: 300  |  evidencia: 100%
+      2. ram_defectuosa  |  nivel de daño: moderado  |  severidad: media  |  certeza: alta  |  prioridad: 300  |  evidencia: 100%
          Acción: Reemplazar el módulo de memoria RAM defectuoso.
 Resultado: APROBADO
 
@@ -35,11 +35,11 @@ Caso 3: Normal 3 (severidad crítica por temperatura)
 Objetivo : Elevar a 'critica' la severidad cuando la temperatura del procesador supera el umbral crítico.
 Entrada  : temp_cpu(97), ventilador_ruidoso
 Consulta : consultar_texto('temp_cpu(97), ventilador_ruidoso', Respuesta).
-Esperado : estado = ok; diagnósticos = refrigeracion_deficiente (critica)
+Esperado : estado = ok; diagnósticos = refrigeracion_deficiente (critica); niveles de daño = moderado
 Obtenido :
     Estado: ok - Diagnóstico generado.
     Diagnósticos (de mayor a menor prioridad):
-      1. refrigeracion_deficiente  |  severidad: critica  |  certeza: alta  |  prioridad: 500  |  evidencia: 100%
+      1. refrigeracion_deficiente  |  nivel de daño: moderado  |  severidad: critica  |  certeza: alta  |  prioridad: 500  |  evidencia: 100%
          Acción: Limpiar el polvo, cambiar la pasta térmica y reemplazar el ventilador.
 Resultado: APROBADO
 
@@ -48,11 +48,11 @@ Caso 4: Exclusión 1 (\+)
 Objetivo : Descartar la falla de fuente aunque haya síntomas, porque la fuente pasó la prueba (\+ descartado). Debe quedar solo la batería CMOS.
 Entrada  : no_enciende, olor_quemado, prueba(fuente_con_probador, ok), hora_incorrecta, equipo(escritorio, 7)
 Consulta : consultar_texto('no_enciende, olor_quemado, prueba(fuente_con_probador, ok), hora_incorrecta, equipo(escritorio, 7)', Respuesta).
-Esperado : estado = ok; diagnósticos = bateria_cmos_agotada (baja)
+Esperado : estado = ok; diagnósticos = bateria_cmos_agotada (baja); niveles de daño = leve
 Obtenido :
     Estado: ok - Diagnóstico generado.
     Diagnósticos (de mayor a menor prioridad):
-      1. bateria_cmos_agotada  |  severidad: baja  |  certeza: alta  |  prioridad: 200  |  evidencia: 100%
+      1. bateria_cmos_agotada  |  nivel de daño: leve  |  severidad: baja  |  certeza: alta  |  prioridad: 200  |  evidencia: 100%
          Acción: Cambiar la batería CMOS (CR2032) de la placa base.
 Resultado: APROBADO
 
@@ -61,11 +61,11 @@ Caso 5: Exclusión 2 (! reglas mutuamente excluyentes)
 Objetivo : RAM mal asentada y RAM defectuosa son excluyentes: si reasentar resuelve, solo debe salir 'ram_mal_asentada'.
 Entrada  : pantalla_azul, prueba(reasentar_ram, resuelve)
 Consulta : consultar_texto('pantalla_azul, prueba(reasentar_ram, resuelve)', Respuesta).
-Esperado : estado = ok; diagnósticos = ram_mal_asentada (baja)
+Esperado : estado = ok; diagnósticos = ram_mal_asentada (baja); niveles de daño = leve
 Obtenido :
     Estado: ok - Diagnóstico generado.
     Diagnósticos (de mayor a menor prioridad):
-      1. ram_mal_asentada  |  severidad: baja  |  certeza: alta  |  prioridad: 200  |  evidencia: 100%
+      1. ram_mal_asentada  |  nivel de daño: leve  |  severidad: baja  |  certeza: alta  |  prioridad: 200  |  evidencia: 100%
          Acción: Reasentar el módulo de RAM y limpiar los contactos.
 Resultado: APROBADO
 
@@ -111,12 +111,38 @@ Caso 9: Placa base (nuevas reglas de inferencia)
 Objetivo : Diagnosticar la placa base cuando no hay energía, la fuente pasa la prueba y el patrón BIOS apunta a la placa.
 Entrada  : no_enciende, prueba(fuente_con_probador, ok), pitidos(un_largo_tres_cortos)
 Consulta : consultar_texto('no_enciende, prueba(fuente_con_probador, ok), pitidos(un_largo_tres_cortos)', Respuesta).
-Esperado : estado = ok; diagnósticos = placa_base_defectuosa (alta)
+Esperado : estado = ok; diagnósticos = placa_base_defectuosa (alta); niveles de daño = grave
 Obtenido :
     Estado: ok - Diagnóstico generado.
     Diagnósticos (de mayor a menor prioridad):
-      1. placa_base_defectuosa  |  severidad: alta  |  certeza: alta  |  prioridad: 400  |  evidencia: 100%
+      1. placa_base_defectuosa  |  nivel de daño: grave  |  severidad: alta  |  certeza: alta  |  prioridad: 400  |  evidencia: 100%
          Acción: Llevar el equipo a un técnico para revisar y reparar la placa base.
+Resultado: APROBADO
+
+Caso 10: Nivel de daño leve (cable o monitor)
+------------------------------------------------------------------------
+Objetivo : Clasificar como leve la falla externa de cable o monitor.
+Entrada  : pantalla_negra, ventiladores_giran, prueba(cambio_cable, resuelve)
+Consulta : consultar_texto('pantalla_negra, ventiladores_giran, prueba(cambio_cable, resuelve)', Respuesta).
+Esperado : estado = ok; diagnósticos = cable_o_monitor_defectuoso (baja); niveles de daño = leve
+Obtenido :
+    Estado: ok - Diagnóstico generado.
+    Diagnósticos (de mayor a menor prioridad):
+      1. cable_o_monitor_defectuoso  |  nivel de daño: leve  |  severidad: baja  |  certeza: alta  |  prioridad: 200  |  evidencia: 100%
+         Acción: Reemplazar el cable de video o el monitor que falló en la prueba.
+Resultado: APROBADO
+
+Caso 11: Nivel de daño grave (tarjeta gráfica)
+------------------------------------------------------------------------
+Objetivo : Clasificar como grave la falla de la tarjeta gráfica.
+Entrada  : pantalla_negra, ventiladores_giran, lineas_en_pantalla, prueba(cambio_cable, no_resuelve), prueba(otro_monitor, no_resuelve)
+Consulta : consultar_texto('pantalla_negra, ventiladores_giran, lineas_en_pantalla, prueba(cambio_cable, no_resuelve), prueba(otro_monitor, no_resuelve)', Respuesta).
+Esperado : estado = ok; diagnósticos = gpu_defectuosa (alta); niveles de daño = grave
+Obtenido :
+    Estado: ok - Diagnóstico generado.
+    Diagnósticos (de mayor a menor prioridad):
+      1. gpu_defectuosa  |  nivel de daño: grave  |  severidad: alta  |  certeza: media  |  prioridad: 400  |  evidencia: 100%
+         Acción: Reemplazar la tarjeta gráfica o llevar el equipo a un técnico.
 Resultado: APROBADO
 
 ========================================================================
@@ -125,6 +151,7 @@ Resultado: APROBADO
   Varias hipótesis posibles: APROBADO
   Prueba recomendada para RAM: APROBADO
   Entrada válida sin diagnóstico: APROBADO
- INTEGRACIÓN: 5 de 5 casos aprobados
- RESUMEN: 14 de 14 casos aprobados
+  Inventario completo de hechos y catálogos: APROBADO
+ INTEGRACIÓN: 6 de 6 casos aprobados
+ RESUMEN: 17 de 17 casos aprobados
 ========================================================================

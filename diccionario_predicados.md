@@ -11,7 +11,7 @@ Archivo de Prolog: `base_conocimiento.pl` · Puente Python: `motor_inferencia.py
 | --- | --- | --- | --- |
 | `consultar_texto/2` | `consultar_texto(+Texto, -Respuesta)` | Convierte el texto (condiciones separadas por comas) en lista y llama a `consultar_caso/2`. Si el texto no se puede interpretar, responde por defecto `[entrada_invalida, [], [], []]`. | `MotorInferencia.consultar_texto()` |
 | `consultar_caso/2` | `consultar_caso(+Entrada, -Respuesta)` | Consulta principal. `Respuesta = [Estado, Diagnosticos, Sospechosos, Descartados]`. | `MotorInferencia.consultar_lista()` |
-| `diagnosticar_todos/3` | `diagnosticar_todos(+Entrada, -Estado, -Diagnosticos)` | Recolecta en una sola lista, sin duplicados y ordenada por prioridad, todos los diagnósticos del caso. `Estado` es `ok`, `datos_insuficientes`, `entrada_vacia` o `entrada_invalida`. Cada diagnóstico es `[Nombre, Certeza, Severidad, Prioridad, Cobertura, Accion]`. | `MotorInferencia.diagnosticar_todos()` |
+| `diagnosticar_todos/3` | `diagnosticar_todos(+Entrada, -Estado, -Diagnosticos)` | Recolecta en una sola lista, sin duplicados y ordenada por prioridad, todos los diagnósticos del caso. `Estado` es `ok`, `datos_insuficientes`, `entrada_vacia` o `entrada_invalida`. Cada diagnóstico es `[Nombre, Certeza, Severidad, NivelDanio, Prioridad, Cobertura, Accion]`. | `MotorInferencia.diagnosticar_todos()` |
 | `componentes_sospechosos/2` | `componentes_sospechosos(+Entrada, -Sospechosos)` | Lista `[[Componente, Cantidad], ...]` de componentes con indicios (síntomas y pitidos), de mayor a menor. Sirve cuando faltan datos. | (vía `consultar_caso/2`) |
 | `listar_sintomas/1` | `listar_sintomas(-Lista)` | Devuelve el catálogo `[[Sintoma, Descripcion], ...]`. | `MotorInferencia.listar_sintomas()` |
 | `analizar_caso/2` | `analizar_caso(+Entrada, -Reporte)` | Devuelve estado, diagnósticos, sospechosos, entradas descartadas, trazas de Prolog y sugerencias de información adicional. | `MotorInferencia.analizar_caso()` |
@@ -64,6 +64,7 @@ Archivo de Prolog: `base_conocimiento.pl` · Puente Python: `motor_inferencia.py
 | Firma | Modo | Descripción funcional |
 | --- | --- | --- |
 | `severidad/4` | `severidad(+Id, +Diagnostico, -Nivel, -Peso)` | Calcula la severidad: `baja`, `media`, `alta` o `critica` (si hay factor de riesgo y la gravedad no es baja). Usa **corte** para que las cláusulas sean excluyentes y un valor por defecto al final. |
+| `nivel_danio/2` | `nivel_danio(+Diagnostico, -Nivel)` | Clasifica la gravedad base del tipo de diagnóstico como `leve`, `moderado` o `grave`, independientemente de los factores de riesgo del caso. |
 | `prioridad/3` | `prioridad(+Peso, +Cobertura, -Prioridad)` | `Prioridad = Peso × 100 + Cobertura`. La severidad domina y la evidencia desempata. |
 | `recolectar_diagnosticos/3` | `recolectar_diagnosticos(+Id, +Validos, -Ordenados)` | Usa `findall/3`, `sort/2` (elimina duplicados) y `sort/4` (ordena por prioridad). |
 | `estado_caso/2` | `estado_caso(+Diagnosticos, -Estado)` | `datos_insuficientes` si la lista está vacía; `ok` en otro caso (excluyentes con corte). |

@@ -3,7 +3,7 @@ pruebas.py
 ==========
 Script de pruebas por consola del Sistema Experto de Diagnóstico de Hardware.
 
-Ejecuta nueve casos base y cinco verificaciones de integración para diagnóstico,
+Ejecuta once casos base y cinco verificaciones de integración para diagnóstico,
 explicabilidad y sugerencias de datos faltantes. Guarda la salida en
 ``evidencia_pruebas.txt``.
 
@@ -29,7 +29,8 @@ CASOS = [
         "objetivo": "Un solo diagnóstico claro, con severidad elevada por olor a quemado.",
         "entrada": "no_enciende, olor_quemado, prueba(fuente_con_probador, falla)",
         "esperado": {"estado": "ok",
-                     "diagnosticos": [("fuente_poder_defectuosa", "critica")]},
+                     "diagnosticos": [("fuente_poder_defectuosa", "critica")],
+                     "niveles_danio": ["grave"]},
     },
     {
         "id": 2,
@@ -41,7 +42,8 @@ CASOS = [
                    "ruido_clic, prueba(smart_disco, falla)",
         "esperado": {"estado": "ok",
                      "diagnosticos": [("disco_fallando", "alta"),
-                                      ("ram_defectuosa", "media")]},
+                                      ("ram_defectuosa", "media")],
+                     "niveles_danio": ["grave", "moderado"]},
     },
     {
         "id": 3,
@@ -50,7 +52,8 @@ CASOS = [
                     "del procesador supera el umbral crítico.",
         "entrada": "temp_cpu(97), ventilador_ruidoso",
         "esperado": {"estado": "ok",
-                     "diagnosticos": [("refrigeracion_deficiente", "critica")]},
+                     "diagnosticos": [("refrigeracion_deficiente", "critica")],
+                     "niveles_danio": ["moderado"]},
     },
     {
         "id": 4,
@@ -61,7 +64,8 @@ CASOS = [
         "entrada": "no_enciende, olor_quemado, prueba(fuente_con_probador, ok), "
                    "hora_incorrecta, equipo(escritorio, 7)",
         "esperado": {"estado": "ok",
-                     "diagnosticos": [("bateria_cmos_agotada", "baja")]},
+                     "diagnosticos": [("bateria_cmos_agotada", "baja")],
+                     "niveles_danio": ["leve"]},
     },
     {
         "id": 5,
@@ -70,7 +74,8 @@ CASOS = [
                     "reasentar resuelve, solo debe salir 'ram_mal_asentada'.",
         "entrada": "pantalla_azul, prueba(reasentar_ram, resuelve)",
         "esperado": {"estado": "ok",
-                     "diagnosticos": [("ram_mal_asentada", "baja")]},
+                     "diagnosticos": [("ram_mal_asentada", "baja")],
+                     "niveles_danio": ["leve"]},
     },
     {
         "id": 6,
@@ -106,7 +111,29 @@ CASOS = [
         "entrada": "no_enciende, prueba(fuente_con_probador, ok), "
                    "pitidos(un_largo_tres_cortos)",
         "esperado": {"estado": "ok",
-                     "diagnosticos": [("placa_base_defectuosa", "alta")]},
+                     "diagnosticos": [("placa_base_defectuosa", "alta")],
+                     "niveles_danio": ["grave"]},
+    },
+    {
+        "id": 10,
+        "tipo": "Nivel de daño leve (cable o monitor)",
+        "objetivo": "Clasificar como leve la falla externa de cable o monitor.",
+        "entrada": "pantalla_negra, ventiladores_giran, "
+                   "prueba(cambio_cable, resuelve)",
+        "esperado": {"estado": "ok",
+                     "diagnosticos": [("cable_o_monitor_defectuoso", "baja")],
+                     "niveles_danio": ["leve"]},
+    },
+    {
+        "id": 11,
+        "tipo": "Nivel de daño grave (tarjeta gráfica)",
+        "objetivo": "Clasificar como grave la falla de la tarjeta gráfica.",
+        "entrada": "pantalla_negra, ventiladores_giran, lineas_en_pantalla, "
+                   "prueba(cambio_cable, no_resuelve), "
+                   "prueba(otro_monitor, no_resuelve)",
+        "esperado": {"estado": "ok",
+                     "diagnosticos": [("gpu_defectuosa", "alta")],
+                     "niveles_danio": ["grave"]},
     },
 ]
 
@@ -134,6 +161,12 @@ def evaluar(resp, esperado):
     obtenidos = [(d.nombre, d.severidad) for d in resp.diagnosticos]
     if obtenidos != esperado["diagnosticos"]:
         diferencias.append(f"diagnósticos: esperado {esperado['diagnosticos']}, obtenido {obtenidos}")
+    if "niveles_danio" in esperado:
+        niveles = [d.nivel_danio for d in resp.diagnosticos]
+        if niveles != esperado["niveles_danio"]:
+            diferencias.append(
+                f"niveles de daño: esperado {esperado['niveles_danio']}, obtenido {niveles}"
+            )
     if "sospechosos" in esperado:
         comps = [c for c, _ in resp.sospechosos]
         if comps != esperado["sospechosos"]:
@@ -148,6 +181,8 @@ def describir_esperado(esperado):
     if esperado["diagnosticos"]:
         partes.append("diagnósticos = " + ", ".join(
             f"{n} ({s})" for n, s in esperado["diagnosticos"]))
+        if "niveles_danio" in esperado:
+            partes.append("niveles de daño = " + ", ".join(esperado["niveles_danio"]))
     else:
         partes.append("diagnósticos = ninguno")
     if "sospechosos" in esperado:
@@ -193,8 +228,8 @@ def ejecutar():
     print("\n" + "=" * 72)
     integraciones_aprobadas = evaluar_integraciones(motor)
     aprobados += integraciones_aprobadas
-    total_casos = len(CASOS) + 5
-    print(f" INTEGRACIÓN: {integraciones_aprobadas} de 5 casos aprobados")
+    total_casos = len(CASOS) + 6
+    print(f" INTEGRACIÓN: {integraciones_aprobadas} de 6 casos aprobados")
     print(f" RESUMEN: {aprobados} de {total_casos} casos aprobados")
     print("=" * 72)
     if aprobados != total_casos:
@@ -202,7 +237,7 @@ def ejecutar():
 
 
 def evaluar_integraciones(motor):
-    """Comprueba los cinco escenarios del entregable Streamlit/explicabilidad."""
+    """Comprueba escenarios de Streamlit, explicabilidad e inventario."""
     casos = [
         (
             "Diagnóstico con explicación",
@@ -223,6 +258,10 @@ def evaluar_integraciones(motor):
         (
             "Entrada válida sin diagnóstico",
             lambda: _caso_sin_diagnostico(motor),
+        ),
+        (
+            "Inventario completo de hechos y catálogos",
+            lambda: _caso_inventario_completo(motor),
         ),
     ]
     aprobados = 0
@@ -296,6 +335,18 @@ def _caso_sin_diagnostico(motor):
             and "R25" in explicacion.reglas
             for explicacion in respuesta.explicaciones
         )
+    )
+
+
+def _caso_inventario_completo(motor):
+    inventario = motor.listar_hechos_base()
+    return (
+        len(inventario) == 13
+        and len(inventario["Componentes"]) == 6
+        and len(inventario["Síntomas reportables"]) == 19
+        and len(inventario["Relaciones síntoma-componente"]) == 22
+        and len(inventario["Casos de ejemplo"]) == 8
+        and all(inventario.values())
     )
 
 

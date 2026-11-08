@@ -54,17 +54,19 @@ Streamlit muestra la dirección local en la terminal y abre el navegador. Normal
 http://localhost:8501
 ```
 
-Para detener la aplicación, vuelve a la terminal y presiona **Ctrl+C**. No ejecutes `py main.py` para iniciar la interfaz; usa `streamlit run` como se indica.
+La interfaz utiliza un tema oscuro con acentos luminosos. Para detener la aplicación, vuelve a la terminal y presiona **Ctrl+C**. La recarga automática de archivos está desactivada para que no aparezca el aviso en inglés de Streamlit; después de cambiar el código, reinicia la aplicación y actualiza la página del navegador. No ejecutes `py main.py` para iniciar la interfaz; usa `streamlit run` como se indica.
 
 ## Uso
 
-1. Selecciona síntomas del catálogo. También puedes escribir identificadores adicionales separados por coma; Python comprueba que existan en el catálogo antes de enviarlos.
-2. Si conoces la temperatura, indícala; de lo contrario, déjala vacía. El patrón de pitidos es opcional.
-3. El tipo y la antigüedad del equipo también son opcionales.
-4. Deja marcada **«No hice ninguna prueba»** si corresponde. Si desmarcas esa opción, selecciona las pruebas realizadas y su resultado. Las pruebas sin resultado no se envían como evidencia.
-5. Pulsa **«Analizar síntomas»**.
+1. Selecciona síntomas del catálogo o escribe una descripción libre del daño (por ejemplo: "no prende", "pantalla negra", "portátil se calienta") y el sistema intenta convertirla a síntomas válidos del dominio. Si indicas que el computador va lento, aparecerá una guía de preguntas paso a paso para precisar si tarda al iniciar, se congela o el disco hace clic.
+2. También puedes ingresar identificadores adicionales separados por coma; Python comprueba que existan en el catálogo antes de enviarlos.
+3. Las casillas de temperatura y de tipo/antigüedad funcionan de forma independiente; cada una muestra solo sus propios campos. La temperatura se puede dejar vacía y el patrón de pitidos es opcional.
+4. Puedes registrar la marca del computador; se muestra como dato informativo y no modifica las reglas de diagnóstico.
+5. Deja marcada **«No hice ninguna prueba»** si corresponde. Si desmarcas esa opción, selecciona las pruebas realizadas y su resultado. Las pruebas sin resultado no se envían como evidencia.
+6. Pulsa **«Analizar síntomas»**.
 
-El resultado contiene los diagnósticos calculados por Prolog (certeza, severidad, prioridad, evidencia y recomendación). Si faltan datos, muestra componentes sospechosos y el panel **«¿Qué falta?»** con pruebas o datos priorizados por las hipótesis compatibles. Abre **«¿Por qué?»** para ver las reglas comprobadas, los hechos del caso, las negaciones por fallo y las alternativas descartadas mediante pruebas.
+
+La interfaz, los resultados y las explicaciones se presentan en español. El resultado contiene los diagnósticos calculados por Prolog (nivel de daño según el tipo de falla, certeza, severidad, prioridad y evidencia), una solución recomendada y pasos orientativos para cada daño reconocido. El nivel de daño se clasifica como leve, moderado o grave a partir de la gravedad base de cada diagnóstico; la severidad puede aumentar por los factores de riesgo del caso. Si faltan datos, muestra componentes sospechosos y el panel **«¿Qué falta?»** con pruebas o datos priorizados por las hipótesis compatibles. Abre **«¿Por qué?»** para ver las reglas comprobadas, los hechos del caso, las negaciones por fallo y las alternativas descartadas mediante pruebas. Las guías son educativas; si no tienes experiencia en reparaciones internas, consulta a un técnico.
 
 Los ejemplos de identificadores de síntomas incluyen:
 
@@ -76,7 +78,7 @@ pantalla_azul
 olor_quemado
 ```
 
-Al ingresar síntomas en el campo de texto, utiliza sus identificadores de Prolog, no frases libres.
+En el campo de descripción puedes escribir frases normales; el sistema intenta relacionarlas con los síntomas que conoce.
 
 ## ¿Qué contiene el proyecto?
 
@@ -86,7 +88,7 @@ Al ingresar síntomas en el campo de texto, utiliza sus identificadores de Prolo
 | `motor_inferencia.py` | Adaptador PySwip: carga Prolog, envía entradas y convierte respuestas, explicaciones y sugerencias. |
 | `main.py` | Interfaz Streamlit principal. |
 | `main_consola.py` | Conserva la interfaz interactiva original por consola. |
-| `pruebas.py` | Nueve pruebas del motor y cinco verificaciones de integración, trazas y sugerencias. |
+| `pruebas.py` | Casos del motor y seis verificaciones de integración, incluido el inventario de hechos y catálogos. |
 | `evidencia_pruebas.txt` | Salida guardada por `pruebas.py`. |
 | `requirements.txt` | Dependencias Python del proyecto. |
 | `web_app.py`, `index.html` | Interfaz web HTTP anterior; se conserva como alternativa, pero el entregable Streamlit se ejecuta con `main.py`. |
@@ -111,6 +113,8 @@ La inferencia, la explicación de las reglas y la priorización de datos faltant
 
 La base mantiene **exactamente 45 hechos** y las **25 reglas de inferencia identificadas como R1–R25**. Los catálogos relacionados están almacenados como hechos compactos para cumplir el conteo; reglas auxiliares permiten consultarlos. La traza informa reglas solo cuando la ruta Prolog correspondiente tuvo éxito. El panel de información faltante se basa en catálogos, evidencias típicas y pruebas que existen en la propia base.
 
+En Streamlit, **«Explorar todos los hechos y catálogos de la base»** permite consultar los componentes, síntomas, relaciones, pruebas, resultados, umbrales, diagnósticos, acciones y casos de ejemplo definidos en Prolog.
+
 Los componentes cubiertos son fuente de poder, placa base, procesador/refrigeración, memoria RAM, almacenamiento y tarjeta gráfica/video. Los diagnósticos incluyen fallas de fuente, video, placa base, refrigeración, RAM, disco y batería CMOS.
 
 ## Ejecutar pruebas
@@ -119,7 +123,7 @@ Los componentes cubiertos son fuente de poder, placa base, procesador/refrigerac
 py pruebas.py
 ```
 
-El script conserva los nueve casos anteriores y agrega cinco comprobaciones de integración:
+El script ejecuta once casos base y seis comprobaciones de integración:
 
 1. Diagnóstico suficiente con explicación de reglas y hechos.
 2. Síntomas insuficientes.

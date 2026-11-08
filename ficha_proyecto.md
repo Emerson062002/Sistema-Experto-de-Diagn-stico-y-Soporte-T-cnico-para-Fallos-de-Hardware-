@@ -33,7 +33,7 @@ Hoy, usuarios no especializados y soporte técnico de nivel básico suelen diagn
 - **Cubre:** fuente de poder, placa base, procesador y refrigeración, memoria RAM, almacenamiento (HDD/SSD) y tarjeta gráfica y video, en equipos de escritorio y portátiles.
 - **No cubre:** fallas de software, sistema operativo o virus; redes, impresoras, servidores, teléfonos y consolas; reparación a nivel de componentes de la placa; daño físico evidente por líquidos o golpes.
 - **Entradas (lista enviada desde Python):** síntomas, temperatura del procesador `temp_cpu(Grados)`, patrón de pitidos `pitidos(Patron)`, pruebas realizadas `prueba(Nombre, Resultado)` y tipo y antigüedad del equipo `equipo(Tipo, Anios)`.
-- **Salidas:** lista de diagnósticos con certeza (alta o media), severidad (baja, media, alta o crítica), prioridad, porcentaje de evidencia y acción recomendada. Si faltan datos, devuelve los componentes sospechosos.
+- **Salidas:** lista de diagnósticos con nivel de daño por tipo de falla (leve, moderado o grave), certeza (alta o media), severidad (baja, media, alta o crítica), prioridad, porcentaje de evidencia y acción recomendada. Si faltan datos, devuelve los componentes sospechosos.
 
 ### Listado preliminar de diagnósticos esperados
 
@@ -62,7 +62,7 @@ Estados posibles de una consulta: `ok`, `datos_insuficientes`, `entrada_vacia` y
 | `main_consola.py` | Interfaz interactiva original por consola. |
 | `web_app.py` | Servidor local para la interfaz web. |
 | `index.html` | Interfaz web del sistema experto. |
-| `pruebas.py` | 9 casos base y 5 comprobaciones de integración, trazas y sugerencias. |
+| `pruebas.py` | 11 casos base y 6 comprobaciones de integración, incluido el inventario completo de hechos y catálogos. |
 | `evidencia_pruebas.txt` | Salida de la ejecución de `pruebas.py`. |
 | `diccionario_predicados.md` | Diccionario de predicados. |
 

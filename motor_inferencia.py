@@ -36,6 +36,7 @@ class Diagnostico:
     nombre: str
     certeza: str
     severidad: str
+    nivel_danio: str
     prioridad: int
     cobertura: int
     accion: str
@@ -58,6 +59,7 @@ class ExplicacionDiagnostico:
     nombre: str
     certeza: str
     severidad: str
+    nivel_danio: str
     prioridad: int
     cobertura: int
     accion: str
@@ -115,8 +117,8 @@ class MotorInferencia:
         return Respuesta(
             estado=str(estado),
             diagnosticos=[
-                Diagnostico(str(d[0]), str(d[1]), str(d[2]),
-                            int(d[3]), int(d[4]), str(d[5]))
+                Diagnostico(str(d[0]), str(d[1]), str(d[2]), str(d[3]),
+                            int(d[4]), int(d[5]), str(d[6]))
                 for d in diagnosticos
             ],
             sospechosos=[(str(s[0]), int(s[1])) for s in sospechosos],
@@ -147,13 +149,14 @@ class MotorInferencia:
                 nombre=str(item[0]),
                 certeza=str(item[1]),
                 severidad=str(item[2]),
-                prioridad=int(item[3]),
-                cobertura=int(item[4]),
-                accion=str(item[5]),
-                reglas=[str(regla) for regla in item[6]],
-                hechos=[str(hecho) for hecho in item[7]],
-                negaciones=[str(negacion) for negacion in item[8]],
-                alternativas_descartadas=[str(alt) for alt in item[9]],
+                nivel_danio=str(item[3]),
+                prioridad=int(item[4]),
+                cobertura=int(item[5]),
+                accion=str(item[6]),
+                reglas=[str(regla) for regla in item[7]],
+                hechos=[str(hecho) for hecho in item[8]],
+                negaciones=[str(negacion) for negacion in item[9]],
+                alternativas_descartadas=[str(alt) for alt in item[10]],
             )
             for item in explicaciones
         ]
@@ -171,8 +174,8 @@ class MotorInferencia:
         """Invoca ``diagnosticar_todos(+Entrada, -Estado, -Diagnosticos)``."""
         consulta = f"diagnosticar_todos({self._lista_prolog(items)}, E, D)"
         sol = self._una_solucion(consulta)
-        diagnosticos = [Diagnostico(str(d[0]), str(d[1]), str(d[2]),
-                                    int(d[3]), int(d[4]), str(d[5]))
+        diagnosticos = [Diagnostico(str(d[0]), str(d[1]), str(d[2]), str(d[3]),
+                                    int(d[4]), int(d[5]), str(d[6]))
                         for d in sol["D"]]
         return str(sol["E"]), diagnosticos
 
@@ -180,6 +183,44 @@ class MotorInferencia:
         """Invoca ``listar_sintomas(-Lista)``."""
         sol = self._una_solucion("listar_sintomas(L)")
         return [(str(s[0]), str(s[1])) for s in sol["L"]]
+
+    def listar_hechos_base(self) -> dict[str, list[str]]:
+        """Devuelve los hechos y elementos de catálogos definidos en Prolog."""
+        consultas = [
+            ("Componentes", "componente(Id, Descripcion)",
+             lambda r: f"componente({r['Id']}, {r['Descripcion']})"),
+            ("Síntomas reportables", "sintoma_catalogo(Sintoma, Descripcion)",
+             lambda r: f"sintoma_catalogo({r['Sintoma']}, {r['Descripcion']})"),
+            ("Relaciones síntoma-componente", "sintoma_componente(Sintoma, Componente)",
+             lambda r: f"sintoma_componente({r['Sintoma']}, {r['Componente']})"),
+            ("Patrones de pitidos", "codigo_pitido(Patron, Componente)",
+             lambda r: f"codigo_pitido({r['Patron']}, {r['Componente']})"),
+            ("Pruebas", "prueba_catalogo(Nombre, Descripcion)",
+             lambda r: f"prueba_catalogo({r['Nombre']}, {r['Descripcion']})"),
+            ("Resultados de pruebas", "resultado_prueba(Resultado, Descripcion)",
+             lambda r: f"resultado_prueba({r['Resultado']}, {r['Descripcion']})"),
+            ("Tipos de equipo", "tipo_equipo(Tipo, Descripcion)",
+             lambda r: f"tipo_equipo({r['Tipo']}, {r['Descripcion']})"),
+            ("Umbrales", "umbral(Parametro, Valor)",
+             lambda r: f"umbral({r['Parametro']}, {r['Valor']})"),
+            ("Gravedad base por diagnóstico", "gravedad(Diagnostico, Nivel)",
+             lambda r: f"gravedad({r['Diagnostico']}, {r['Nivel']})"),
+            ("Pesos de severidad", "peso_gravedad(Nivel, Peso)",
+             lambda r: f"peso_gravedad({r['Nivel']}, {r['Peso']})"),
+            ("Acciones recomendadas", "accion(Diagnostico, Accion)",
+             lambda r: f"accion({r['Diagnostico']}, {r['Accion']})"),
+            ("Evidencia típica por diagnóstico", "evidencia_tipica(Diagnostico, Evidencia)",
+             lambda r: f"evidencia_tipica({r['Diagnostico']}, "
+                       f"[{', '.join(map(str, r['Evidencia']))}])"),
+            ("Casos de ejemplo", "caso_ejemplo(Nombre, Entrada)",
+             lambda r: f"caso_ejemplo({r['Nombre']}, "
+                       f"[{', '.join(map(str, r['Entrada']))}])"),
+        ]
+        with self._lock:
+            return {
+                seccion: [formatear(fila) for fila in self._prolog.query(consulta)]
+                for seccion, consulta, formatear in consultas
+            }
 
 
 # --------------------------------------------------------------------------- #
@@ -202,7 +243,8 @@ def formatear_respuesta(resp: Respuesta) -> str:
     if resp.diagnosticos:
         lineas.append("Diagnósticos (de mayor a menor prioridad):")
         for i, d in enumerate(resp.diagnosticos, start=1):
-            lineas.append(f"  {i}. {d.nombre}  |  severidad: {d.severidad}  |  "
+            lineas.append(f"  {i}. {d.nombre}  |  nivel de daño: {d.nivel_danio}  |  "
+                          f"severidad: {d.severidad}  |  "
                           f"certeza: {d.certeza}  |  prioridad: {d.prioridad}  |  "
                           f"evidencia: {d.cobertura}%")
             lineas.append(f"     Acción: {d.accion}")

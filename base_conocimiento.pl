@@ -126,7 +126,7 @@ catalogo_pruebas([
     otro_monitor-'Conectar otro monitor',
     gpu_en_otro_equipo-'Probar la tarjeta gráfica en otro equipo',
     reasentar_ram-'Sacar y volver a colocar la memoria RAM',
-    smart_disco-'Revisar el estado SMART del disco',
+    smart_disco-'Revisar el estado de salud del disco',
     cambio_bateria-'Cambiar la batería CMOS'
 ]).
 
@@ -267,6 +267,13 @@ gravedad(Diagnostico, Nivel) :-
     catalogo_gravedades(Gravedades),
     member(Diagnostico-Nivel, Gravedades).
 
+nivel_danio(Diagnostico, leve) :-
+    gravedad(Diagnostico, baja).
+nivel_danio(Diagnostico, moderado) :-
+    gravedad(Diagnostico, media).
+nivel_danio(Diagnostico, grave) :-
+    gravedad(Diagnostico, alta).
+
 peso_gravedad(Nivel, Peso) :-
     catalogo_pesos(Pesos),
     member(Nivel-Peso, Pesos).
@@ -399,7 +406,7 @@ memoria_defectuosa(E) :-
     memoria_sospechosa(E),
     prueba(E, reasentar_ram, no_resuelve).
 
-% R16. Almacenamiento degradado: síntomas de disco y la prueba SMART falla.
+% R16. Almacenamiento degradado: síntomas de disco y la prueba de estado detecta fallas.
 almacenamiento_degradado(E) :-
     once(sintoma_de(E, almacenamiento)),
     prueba(E, smart_disco, falla).
@@ -672,7 +679,7 @@ prioridad(Peso, Cobertura, Prioridad) :-
 % diagnosticar_todos(+Entrada, -Estado, -Diagnosticos)
 % Agrupa en UNA lista, sin duplicados y ordenada por prioridad, todos los
 % diagnósticos del caso. Cada elemento es una lista:
-%     [Diagnostico, Certeza, Severidad, Prioridad, Cobertura, Accion]
+%     [Diagnostico, Certeza, Severidad, NivelDanio, Prioridad, Cobertura, Accion]
 % Estado: ok | datos_insuficientes | entrada_vacia | entrada_invalida
 diagnosticar_todos(Entrada, entrada_invalida, []) :-
     \+ is_list(Entrada), !.
@@ -704,8 +711,10 @@ recolectar_diagnosticos(Id, Validos, Ordenados) :-
     sort(1, @>=, Pares, Descendente),        % mayor prioridad primero
     pairs_values(Descendente, Ordenados).
 
-fila_diagnostico(Id, Validos, D, C, Prioridad, [D, C, Sev, Prioridad, Cob, Accion]) :-
+fila_diagnostico(Id, Validos, D, C, Prioridad,
+                 [D, C, Sev, NivelDanio, Prioridad, Cob, Accion]) :-
     severidad(Id, D, Sev, Peso),
+    nivel_danio(D, NivelDanio),
     cobertura(Validos, D, Cob),
     prioridad(Peso, Cob, Prioridad),
     accion(D, Accion).
@@ -821,8 +830,9 @@ atomizar_descartados(Items, Textos) :-
             Textos).
 
 explicar_diagnosticos(_, _, [], []).
-explicar_diagnosticos(Id, Validos, [[D, C, Sev, Prioridad, Cob, Accion]|Resto],
-                      [[D, C, Sev, Prioridad, Cob, Accion,
+explicar_diagnosticos(Id, Validos,
+                      [[D, C, Sev, NivelDanio, Prioridad, Cob, Accion]|Resto],
+                      [[D, C, Sev, NivelDanio, Prioridad, Cob, Accion,
                         Reglas, Hechos, Negaciones, Alternativas]|Explicaciones]) :-
     traza_diagnostico(Id, D, Reglas),
     hechos_comprobados(Id, Reglas, Hechos),
@@ -973,12 +983,12 @@ razon_descartado(fuente_poder_defectuosa, fuente_con_probador, ok,
 razon_descartado(gpu_defectuosa, gpu_en_otro_equipo, ok,
                  'la tarjeta gráfica funcionó en otro equipo').
 razon_descartado(disco_fallando, smart_disco, ok,
-                 'la revisión SMART no detectó falla').
+                 'la revisión del estado del disco no detectó una falla').
 razon_descartado(bateria_cmos_agotada, cambio_bateria, no_resuelve,
                  'cambiar la batería no resolvió el problema').
 
 explicacion_sin_diagnostico(Id, Validos,
-    [[sin_diagnostico, '', '', 0, 0, '', ['R25'], Hechos, [Negacion], []]]) :-
+    [[sin_diagnostico, '', '', '', 0, 0, '', ['R25'], Hechos, [Negacion], []]]) :-
     sin_diagnostico(Id),
     hechos_comprobados(Id, ['R25'], Hechos),
     format(atom(Negacion),
@@ -1109,8 +1119,8 @@ dato_recomendado(ram_defectuosa, reasentar_ram,
     'R14 y R15 distinguen una RAM mal asentada de una RAM posiblemente defectuosa.',
     95).
 dato_recomendado(disco_fallando, smart_disco,
-    'Prueba: consulta el estado SMART del disco y registra si indica falla.',
-    'R16 usa el resultado SMART junto con síntomas de almacenamiento.',
+    'Prueba: consulta el estado de salud del disco y registra si indica una falla.',
+    'R16 usa el resultado de la revisión del disco junto con síntomas de almacenamiento.',
     95).
 dato_recomendado(refrigeracion_deficiente, temperatura,
     'Dato: proporciona la temperatura del procesador en °C, si puedes consultarla.',
