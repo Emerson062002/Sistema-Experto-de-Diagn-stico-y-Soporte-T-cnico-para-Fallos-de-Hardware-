@@ -152,6 +152,7 @@ Resultado: APROBADO
   Prueba recomendada para RAM: APROBADO
   Entrada válida sin diagnóstico: APROBADO
   Inventario completo de hechos y catálogos: APROBADO
- INTEGRACIÓN: 6 de 6 casos aprobados
- RESUMEN: 17 de 17 casos aprobados
+  Reconocimiento de descripción natural ampliada: APROBADO
+ INTEGRACIÓN: 7 de 7 casos aprobados
+ RESUMEN: 18 de 18 casos aprobados
 ========================================================================

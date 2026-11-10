@@ -228,8 +228,8 @@ def ejecutar():
     print("\n" + "=" * 72)
     integraciones_aprobadas = evaluar_integraciones(motor)
     aprobados += integraciones_aprobadas
-    total_casos = len(CASOS) + 6
-    print(f" INTEGRACIÓN: {integraciones_aprobadas} de 6 casos aprobados")
+    total_casos = len(CASOS) + 7
+    print(f" INTEGRACIÓN: {integraciones_aprobadas} de 7 casos aprobados")
     print(f" RESUMEN: {aprobados} de {total_casos} casos aprobados")
     print("=" * 72)
     if aprobados != total_casos:
@@ -262,6 +262,10 @@ def evaluar_integraciones(motor):
         (
             "Inventario completo de hechos y catálogos",
             lambda: _caso_inventario_completo(motor),
+        ),
+        (
+            "Reconocimiento de descripción natural ampliada",
+            lambda: _caso_lenguaje_natural_ampliado(motor),
         ),
     ]
     aprobados = 0
@@ -347,6 +351,16 @@ def _caso_inventario_completo(motor):
         and len(inventario["Relaciones síntoma-componente"]) == 22
         and len(inventario["Casos de ejemplo"]) == 8
         and all(inventario.values())
+    )
+
+
+def _caso_lenguaje_natural_ampliado(motor):
+    respuesta = motor.consultar_texto("no da video")
+    return (
+        respuesta.estado == "datos_insuficientes"
+        and not respuesta.diagnosticos
+        and respuesta.sospechosos
+        and respuesta.sospechosos[0][0] == "tarjeta_video"
     )
 
 

@@ -35,6 +35,140 @@
 % Los datos de un caso son dinámicos: la parte C los carga desde una lista
 % enviada por Python y los elimina al terminar (ver cargar_caso/2).
 :- dynamic equipo/3, observado/2, medicion/3, pitidos/2, prueba/3.
+:- dynamic alias_sintoma/2.
+:- discontiguous texto_a_lista/2.
+
+% Alias de entrada libre que el usuario experto puede aprender durante la
+% ejecución. Estos alias se usan para convertir frases normales del usuario en
+% síntomas del catálogo del sistema experto.
+alias_sintoma(no_enciende, 'no enciende').
+alias_sintoma(no_enciende, 'no prende').
+alias_sintoma(no_enciende, 'no arranca').
+alias_sintoma(no_enciende, 'no hay energia').
+alias_sintoma(no_enciende, 'no tiene corriente').
+alias_sintoma(no_enciende, 'no da señales de vida').
+alias_sintoma(no_enciende, 'no arranca el computador').
+alias_sintoma(olor_quemado, 'olor a quemado').
+alias_sintoma(olor_quemado, 'olor quemado').
+alias_sintoma(olor_quemado, 'huele a quemado').
+alias_sintoma(olor_quemado, 'sale humo').
+alias_sintoma(pantalla_negra, 'pantalla negra').
+alias_sintoma(pantalla_negra, 'pantalla en negro').
+alias_sintoma(pantalla_negra, 'monitor negro').
+alias_sintoma(pantalla_negra, 'no muestra imagen').
+alias_sintoma(pantalla_negra, 'pantalla no se ve').
+alias_sintoma(pantalla_negra, 'sin imagen').
+alias_sintoma(pantalla_negra, 'no da video').
+alias_sintoma(pantalla_negra, 'monitor sin señal').
+alias_sintoma(pantalla_azul, 'pantalla azul').
+alias_sintoma(pantalla_azul, 'pantalla en azul').
+alias_sintoma(pantalla_azul, 'pantallazo azul').
+alias_sintoma(reinicios_aleatorios, 'se reinicia solo').
+alias_sintoma(reinicios_aleatorios, 'se reinicia de repente').
+alias_sintoma(reinicios_aleatorios, 'reinicia constantemente').
+alias_sintoma(apagados_repentinos, 'se apaga inesperadamente').
+alias_sintoma(apagados_repentinos, 'se apaga despues de un rato').
+alias_sintoma(apagados_repentinos, 'se apaga jugando').
+alias_sintoma(apagados_repentinos, 'se apaga al jugar').
+alias_sintoma(apagados_repentinos, 'se apaga cuando juego').
+alias_sintoma(ventilador_ruidoso, 'ventilador ruidoso').
+alias_sintoma(ventilador_ruidoso, 'ventilador suena duro').
+alias_sintoma(ventilador_ruidoso, 'ruido del ventilador').
+alias_sintoma(ventilador_ruidoso, 'se calienta').
+alias_sintoma(ventilador_ruidoso, 'se sobrecalienta').
+alias_sintoma(ventilador_ruidoso, 'temperatura muy alta').
+alias_sintoma(ventilador_ruidoso, 'equipo muy caliente').
+alias_sintoma(ventilador_detenido, 'ventilador no gira').
+alias_sintoma(ventilador_detenido, 'ventilador detenido').
+alias_sintoma(ventiladores_giran, 'ventiladores giran').
+alias_sintoma(lentitud, 'va lento').
+alias_sintoma(lentitud, 'computador lento').
+alias_sintoma(lentitud, 'computadora lenta').
+alias_sintoma(lentitud, 'se demora mucho').
+alias_sintoma(arranque_lento, 'arranque lento').
+alias_sintoma(arranque_lento, 'tarda en iniciar').
+alias_sintoma(arranque_lento, 'demora al arrancar').
+alias_sintoma(ruido_clic, 'disco hace clic').
+alias_sintoma(ruido_clic, 'disco hace ruido').
+alias_sintoma(ruido_clic, 'ruido en el disco duro').
+alias_sintoma(disco_no_encontrado, 'disco no encontrado').
+alias_sintoma(disco_no_encontrado, 'no detecta el disco').
+alias_sintoma(disco_no_encontrado, 'no reconoce el disco duro').
+alias_sintoma(disco_no_encontrado, 'disco duro no funciona').
+alias_sintoma(lineas_en_pantalla, 'líneas en la pantalla').
+alias_sintoma(lineas_en_pantalla, 'rayas en la pantalla').
+alias_sintoma(lineas_en_pantalla, 'pantalla con rayas').
+alias_sintoma(lineas_en_pantalla, 'pantalla parpadea').
+alias_sintoma(artefactos_video, 'artefactos en la pantalla').
+alias_sintoma(artefactos_video, 'imagen distorsionada').
+alias_sintoma(artefactos_video, 'pixeles de colores').
+alias_sintoma(bloqueos, 'se congela').
+alias_sintoma(bloqueos, 'se queda congelado').
+alias_sintoma(bloqueos, 'se queda pegado').
+alias_sintoma(bloqueos, 'no responde').
+alias_sintoma(bloqueos, 'deja de responder').
+
+listar_aliases(Lista) :-
+    findall([Sintoma, Frase], alias_sintoma(Sintoma, Frase), Lista).
+
+agregar_alias(Frase, Sintoma) :-
+    atom(Frase),
+    atom(Sintoma),
+    sintoma_catalogo(Sintoma, _),
+    \+ alias_sintoma(Sintoma, Frase),
+    assertz(alias_sintoma(Sintoma, Frase)).
+
+resolver_alias(Frase, Sintoma) :-
+    downcase_atom(Frase, FraseNormal),
+    downcase_atom(Sintoma, SintomaNormal),
+    alias_sintoma(SintomaNormal, FraseNormal).
+
+% DCG mínimo para convertir texto libre en síntomas del dominio. Sirve para
+% cumplir la entrega 3 (procesamiento de lenguaje natural) sin perder la
+% validación del catálogo existente.
+texto_a_lista(Texto, Lista) :-
+    atom(Texto),
+    downcase_atom(Texto, Normalizado),
+    atom_codes(Normalizado, Codes),
+    phrase(sintomas(Lista), Codes), !.
+texto_a_lista(Texto, Lista) :-
+    atomic_list_concat(['[', Texto, ']'], Atomo),
+    catch(term_to_atom(Lista, Atomo), _, fail),
+    is_list(Lista).
+
+sintomas([S|R]) --> sintoma(S), separador, sintomas(R).
+sintomas([S]) --> sintoma(S).
+sintomas([]) --> [].
+
+separador --> [','], espacios.
+separador --> [y], espacios.
+separador --> espacios.
+
+espacios --> [X], { code_type(X, space) }, espacios.
+espacios --> [].
+
+sintoma(no_enciende) --> [no], espacios, [enciende].
+sintoma(no_enciende) --> [no], espacios, [prende].
+sintoma(no_enciende) --> [no], espacios, [arranca].
+sintoma(olor_quemado) --> [olor], espacios, [a], espacios, [quemado].
+sintoma(olor_quemado) --> [olor], espacios, [quemado].
+sintoma(pantalla_negra) --> [pantalla], espacios, [negra].
+sintoma(pantalla_negra) --> [pantalla], espacios, [en], espacios, [negro].
+sintoma(pantalla_negra) --> [monitor], espacios, [negro].
+sintoma(pantalla_azul) --> [pantalla], espacios, [azul].
+sintoma(pantalla_azul) --> [pantalla], espacios, [en], espacios, [azul].
+sintoma(reinicios_aleatorios) --> [se], espacios, [reinicia], espacios, [solo].
+sintoma(ventilador_ruidoso) --> [ventilador], espacios, [ruidoso].
+sintoma(ventilador_ruidoso) --> [se], espacios, [calienta].
+sintoma(ventilador_detenido) --> [ventilador], espacios, [no], espacios, [gira].
+sintoma(ventiladores_giran) --> [ventiladores], espacios, [giran].
+sintoma(lentitud) --> [va], espacios, [lento].
+sintoma(arranque_lento) --> [arranque], espacios, [lento].
+sintoma(ruido_clic) --> [disco], espacios, [hace], espacios, [clic].
+sintoma(disco_no_encontrado) --> [disco], espacios, [no], espacios, [encontrado].
+sintoma(lineas_en_pantalla) --> [lineas], espacios, [en], espacios, [la], espacios, [pantalla].
+sintoma(artefactos_video) --> [artefactos], espacios, [en], espacios, [la], espacios, [pantalla].
+sintoma(bloqueos) --> [se], espacios, [congela].
 
 
 %% =============================================================================

@@ -14,39 +14,88 @@ ALIASES_SINTOMAS = [
     ("no enciende", "no_enciende"),
     ("no prende", "no_enciende"),
     ("no arranca", "no_enciende"),
+    ("no enciende el pc", "no_enciende"),
+    ("no enciende la computadora", "no_enciende"),
+    ("el computador no enciende", "no_enciende"),
+    ("no hay energia", "no_enciende"),
+    ("no tiene corriente", "no_enciende"),
+    ("no da señales de vida", "no_enciende"),
+    ("no arranca el computador", "no_enciende"),
     ("equipo no enciende", "no_enciende"),
     ("olor a quemado", "olor_quemado"),
     ("olor quemado", "olor_quemado"),
+    ("huele a quemado", "olor_quemado"),
+    ("sale humo", "olor_quemado"),
     ("pantalla negra", "pantalla_negra"),
     ("pantalla en negro", "pantalla_negra"),
     ("monitor negro", "pantalla_negra"),
+    ("no muestra imagen", "pantalla_negra"),
+    ("pantalla no se ve", "pantalla_negra"),
+    ("sin imagen", "pantalla_negra"),
+    ("no da video", "pantalla_negra"),
+    ("sin señal en el monitor", "pantalla_negra"),
+    ("monitor sin señal", "pantalla_negra"),
     ("pantalla azul", "pantalla_azul"),
     ("pantalla en azul", "pantalla_azul"),
     ("monitor azul", "pantalla_azul"),
+    ("pantallazo azul", "pantalla_azul"),
+    ("error de pantalla azul", "pantalla_azul"),
     ("se apaga solo", "apagados_repentinos"),
     ("se apaga de repente", "apagados_repentinos"),
     ("apaga solo", "apagados_repentinos"),
-    ("pantalla azul", "pantalla_azul"),
+    ("se apaga inesperadamente", "apagados_repentinos"),
+    ("se apaga despues de un rato", "apagados_repentinos"),
+    ("se apaga jugando", "apagados_repentinos"),
+    ("se apaga al jugar", "apagados_repentinos"),
+    ("se apaga cuando juego", "apagados_repentinos"),
     ("bloquea", "bloqueos"),
     ("se congela", "bloqueos"),
+    ("se queda congelado", "bloqueos"),
+    ("se queda pegado", "bloqueos"),
+    ("no responde", "bloqueos"),
+    ("deja de responder", "bloqueos"),
     ("quedarse pegado", "bloqueos"),
     ("va lento", "lentitud"),
     ("muy lento", "lentitud"),
+    ("computador lento", "lentitud"),
+    ("computadora lenta", "lentitud"),
+    ("se demora mucho", "lentitud"),
     ("arranque lento", "arranque_lento"),
+    ("tarda en iniciar", "arranque_lento"),
+    ("demora al arrancar", "arranque_lento"),
     ("se reinicia solo", "reinicios_aleatorios"),
     ("reinicios aleatorios", "reinicios_aleatorios"),
+    ("se reinicia de repente", "reinicios_aleatorios"),
+    ("reinicia constantemente", "reinicios_aleatorios"),
     ("ventilador hace ruido", "ventilador_ruidoso"),
     ("ventilador ruidoso", "ventilador_ruidoso"),
+    ("ventilador suena duro", "ventilador_ruidoso"),
+    ("ruido del ventilador", "ventilador_ruidoso"),
     ("ventilador no gira", "ventilador_detenido"),
     ("ventiladores no giran", "ventilador_detenido"),
+    ("ventilador detenido", "ventilador_detenido"),
     ("ventiladores giran", "ventiladores_giran"),
+    ("se calienta mucho", "ventilador_ruidoso"),
+    ("se sobrecalienta", "ventilador_ruidoso"),
+    ("temperatura muy alta", "ventilador_ruidoso"),
+    ("equipo muy caliente", "ventilador_ruidoso"),
     ("disco hace clic", "ruido_clic"),
     ("hace clic", "ruido_clic"),
+    ("disco hace ruido", "ruido_clic"),
+    ("ruido en el disco duro", "ruido_clic"),
     ("disco no encontrado", "disco_no_encontrado"),
+    ("no detecta el disco", "disco_no_encontrado"),
+    ("no reconoce el disco duro", "disco_no_encontrado"),
+    ("disco duro no funciona", "disco_no_encontrado"),
     ("lineas en la pantalla", "lineas_en_pantalla"),
     ("rayas en la pantalla", "lineas_en_pantalla"),
+    ("pantalla con rayas", "lineas_en_pantalla"),
+    ("parpadea la pantalla", "lineas_en_pantalla"),
+    ("pantalla parpadea", "lineas_en_pantalla"),
     ("artefactos en pantalla", "artefactos_video"),
     ("artefactos en la imagen", "artefactos_video"),
+    ("imagen distorsionada", "artefactos_video"),
+    ("pixeles de colores", "artefactos_video"),
     ("calienta demasiado", "ventilador_ruidoso"),
     ("se calienta", "ventilador_ruidoso"),
     ("sobrecalienta", "ventilador_ruidoso"),
@@ -284,6 +333,103 @@ def detectar_pitidos_desde_texto(texto: str) -> str | None:
     return None
 
 
+def obtener_aliases_aprendidos() -> dict[str, str]:
+    """Carga los alias dinámicos aprendidos por el modo experto."""
+    motor = obtener_motor()
+    return {
+        frase: sintoma
+        for sintoma, frase in motor.listar_aliases_aprendidos()
+    }
+
+
+def mostrar_panel_experto(
+    motor: MotorInferencia,
+    opciones_sintomas: dict[str, str],
+) -> None:
+    """Presenta las herramientas de vocabulario fuera del flujo de diagnóstico."""
+    st.markdown('<div class="section-kicker">Administración del conocimiento</div>', unsafe_allow_html=True)
+    st.markdown("## Centro experto")
+    st.markdown(
+        '<p class="section-intro">Enseña al sistema nuevas formas de describir fallas '
+        'y administra las frases personalizadas.</p>',
+        unsafe_allow_html=True,
+    )
+    st.info(
+        "El modo experto amplía el vocabulario de entrada. Para agregar una falla o "
+        "diagnóstico nuevo hacen falta reglas de inferencia revisadas en la base Prolog."
+    )
+
+    alias_actuales = motor.listar_aliases_aprendidos()
+    columna_total, columna_sintomas = st.columns(2)
+    columna_total.metric("Frases personalizadas", len(alias_actuales))
+    columna_sintomas.metric("Síntomas disponibles", len(opciones_sintomas))
+
+    with st.container(border=True):
+        st.markdown("### Enseñar una frase nueva")
+        with st.form("harddiag_form_aprender_alias", clear_on_submit=True):
+            nueva_frase = st.text_input(
+                "Cómo describiría el usuario la falla",
+                placeholder="Ejemplo: el monitor muestra rayas de colores",
+                max_chars=120,
+            ).strip()
+            sintoma_aprendido = st.selectbox(
+                "Síntoma conocido que mejor representa la frase",
+                options=sorted(opciones_sintomas),
+                format_func=lambda nombre: opciones_sintomas[nombre],
+            )
+            guardar = st.form_submit_button(
+                "Guardar frase para futuros diagnósticos",
+                type="primary",
+                use_container_width=True,
+            )
+
+        if guardar:
+            if not nueva_frase:
+                st.warning("Escribe una frase antes de guardarla.")
+            else:
+                try:
+                    guardado = motor.aprender_alias(nueva_frase, sintoma_aprendido)
+                except (OSError, ValueError, PrologError, RuntimeError) as error:
+                    st.error(f"No se pudo guardar la frase: {error}")
+                else:
+                    if guardado:
+                        st.success(
+                            f"Aprendida: «{nueva_frase}» → "
+                            f"{opciones_sintomas[sintoma_aprendido]}. "
+                            "Ya se puede usar en el diagnóstico normal."
+                        )
+                    else:
+                        st.warning(
+                            "No se guardó: esa frase ya está asociada con otro síntoma "
+                            "o la asociación no es válida."
+                        )
+
+    with st.container(border=True):
+        st.markdown("### Frases personalizadas")
+        if not alias_actuales:
+            st.caption("Aún no se han agregado frases personalizadas.")
+        else:
+            for sintoma, frase in alias_actuales:
+                st.write(f"- **{frase}** → {opciones_sintomas.get(sintoma, sintoma)}")
+
+            frase_eliminar = st.selectbox(
+                "Selecciona una frase para eliminar",
+                options=[frase for _, frase in alias_actuales],
+                key="harddiag_alias_a_eliminar",
+            )
+            if st.button("Eliminar frase seleccionada", key="harddiag_eliminar_alias"):
+                try:
+                    eliminada = motor.eliminar_alias_aprendido(frase_eliminar)
+                except (OSError, ValueError, PrologError, RuntimeError) as error:
+                    st.error(f"No se pudo eliminar la frase: {error}")
+                else:
+                    if eliminada:
+                        st.success(f"Se eliminó la frase «{frase_eliminar}».")
+                        st.rerun()
+                    else:
+                        st.error("La frase no está guardada como aprendizaje personalizado.")
+
+
 def extraer_sintomas_libres(texto: str) -> list[str]:
     """Convierte frases normales de hardware a síntomas del catálogo conocido."""
     resultado: list[str] = []
@@ -291,7 +437,12 @@ def extraer_sintomas_libres(texto: str) -> list[str]:
     if not texto_normal:
         return resultado
     for patron, sintoma in ALIASES_SINTOMAS:
-        if patron in texto_normal and sintoma not in resultado:
+        patron_normal = normalizar_texto_libre(patron)
+        if patron_normal in texto_normal and sintoma not in resultado:
+            resultado.append(sintoma)
+    for alias, sintoma in obtener_aliases_aprendidos().items():
+        alias_normal = normalizar_texto_libre(alias)
+        if alias_normal and alias_normal in texto_normal and sintoma not in resultado:
             resultado.append(sintoma)
     return resultado
 
@@ -442,7 +593,8 @@ def preparar_entrada(
 
 def mostrar_resultado(respuesta: Respuesta) -> None:
     """Presenta únicamente los diagnósticos, trazas y sugerencias devueltos por Prolog."""
-    st.markdown("## Resultado del análisis")
+    st.markdown('<div class="section-kicker">Paso 3 · Resultado</div>', unsafe_allow_html=True)
+    st.markdown("## Lo que encontramos")
     marca = st.session_state.get("harddiag_marca")
     if marca:
         st.caption(f"Equipo: {marca}")
@@ -560,13 +712,13 @@ def mostrar_resultado(respuesta: Respuesta) -> None:
 
 
 def main() -> None:
+    st.session_state.setdefault("harddiag_modo", "normal")
     st.set_page_config(
         page_title="HardDiag | Diagnóstico de hardware",
         page_icon="🖥️",
         layout="wide",
     )
-    st.markdown(
-        """
+    hero = """
         <style>
         #MainMenu, header[data-testid="stHeader"], footer {visibility: hidden;}
         :root {
@@ -582,18 +734,18 @@ def main() -> None:
                 linear-gradient(145deg, #07111f 0%, #091728 48%, #07101d 100%);
         }
         .block-container {
-            max-width: 1120px;
-            padding-top: 2rem;
-            padding-bottom: 4rem;
+            max-width: 1060px;
+            padding-top: 1.5rem;
+            padding-bottom: 3rem;
         }
         h1, h2, h3 { letter-spacing: -0.025em; }
         .hero {
             position: relative;
             overflow: hidden;
-            padding: 2rem 2.2rem;
-            margin: 0 0 1.2rem;
-            border: 1px solid rgba(64, 217, 255, .3);
-            border-radius: 20px;
+            padding: 1.8rem 2rem;
+            margin: 0 0 1.5rem;
+            border: 1px solid rgba(64, 217, 255, .24);
+            border-radius: 22px;
             background:
                 radial-gradient(ellipse at 85% 50%, rgba(64, 217, 255, .13), transparent 38%),
                 linear-gradient(120deg, rgba(17, 36, 59, .98), rgba(11, 25, 43, .96));
@@ -639,6 +791,68 @@ def main() -> None:
             background: var(--hd-cyan);
             box-shadow: 0 0 12px var(--hd-cyan);
             content: "";
+        }
+        .workflow {
+            display: flex;
+            flex-wrap: wrap;
+            gap: .55rem;
+            margin-top: 1.35rem;
+        }
+        .workflow span {
+            padding: .42rem .72rem;
+            border: 1px solid rgba(147, 177, 209, .18);
+            border-radius: 999px;
+            background: rgba(3, 14, 27, .38);
+            color: #c7d9ed;
+            font-size: .79rem;
+        }
+        .workflow b {
+            margin-right: .35rem;
+            color: var(--hd-cyan);
+        }
+        .section-kicker {
+            margin: .3rem 0 .25rem;
+            color: var(--hd-cyan);
+            font-size: .72rem;
+            font-weight: 750;
+            letter-spacing: .12em;
+            text-transform: uppercase;
+        }
+        .section-intro {
+            margin: 0 0 .9rem;
+            color: #9eb4cc;
+            font-size: .95rem;
+        }
+        .form-card {
+            padding: 1.25rem 1.35rem;
+            border: 1px solid rgba(91, 183, 255, .23);
+            border-radius: 18px;
+            background: linear-gradient(145deg, rgba(16, 31, 50, .94), rgba(10, 23, 39, .96));
+            box-shadow: 0 15px 40px rgba(0, 0, 0, .17);
+        }
+        .st-key-harddiag_analyze button {
+            min-height: 3.15rem;
+            font-size: 1.02rem;
+        }
+        div[data-testid="stExpander"] {
+            margin: .45rem 0;
+            border: 1px solid rgba(91, 183, 255, .18);
+            border-radius: 14px;
+            background: rgba(13, 28, 46, .62);
+        }
+        div[data-testid="stExpander"] details summary {
+            color: #e5f3ff;
+            font-weight: 650;
+        }
+        div[data-testid="stMetric"] {
+            min-height: 6rem;
+            border-color: rgba(91, 183, 255, .2);
+            background: linear-gradient(145deg, rgba(13, 30, 50, .92), rgba(8, 21, 37, .88));
+        }
+        div[data-testid="stVerticalBlockBorderWrapper"] > div {
+            border-color: rgba(91, 183, 255, .2);
+            border-radius: 16px;
+            background: linear-gradient(145deg, rgba(15, 31, 50, .93), rgba(9, 22, 38, .95));
         }
         .stMarkdown p, .stCaption, label, [data-testid="stWidgetLabel"] p {
             color: #d5e4f3;
@@ -702,33 +916,58 @@ def main() -> None:
         }
         @media (max-width: 640px) {
             .block-container { padding: 1rem 1rem 3rem; }
-            .hero { padding: 1.3rem; border-radius: 16px; }
+            .hero { padding: 1.3rem; border-radius: 18px; }
             div[data-testid="stForm"] { padding: 1rem; }
+            .form-card { padding: 1rem; }
         }
         </style>
         <section class="hero">
-            <div class="hero-kicker">Asistente de soporte técnico</div>
+            <div class="hero-kicker">Diagnóstico guiado de computadores</div>
             <h1>HardDiag</h1>
-            <p>Describe las fallas de tu computador y recibe posibles causas,
-            recomendaciones y pasos seguros para continuar.</p>
+            <p>Identifica posibles fallas de hardware a partir de síntomas,
+            pruebas y condiciones del equipo. Recibe hipótesis explicadas y
+            recomendaciones seguras para continuar.</p>
             <div class="hero-status">Sistema experto · Análisis de hardware</div>
+            <div class="workflow">
+                <span><b>01</b> Describe la falla</span>
+                <span><b>02</b> Añade evidencias</span>
+                <span><b>03</b> Revisa el diagnóstico</span>
+            </div>
         </section>
-        """,
-        unsafe_allow_html=True,
-    )
-    st.write(
-        "Elige los síntomas observados o descríbelos con tus propias palabras. "
-        "El sistema analiza computadores de escritorio y portátiles."
-    )
-    st.warning(
-        "Herramienta educativa de orientación. Ante olor a quemado, apaga y "
-        "desconecta el computador. No abras la fuente de poder."
+        """
+    if st.session_state["harddiag_modo"] == "experto":
+        hero = hero.replace(
+            "Diagnóstico guiado de computadores",
+            "Administración del conocimiento experto",
+        ).replace(
+            "Identifica posibles fallas de hardware a partir de síntomas,\n"
+            "            pruebas y condiciones del equipo. Recibe hipótesis explicadas y\n"
+            "            recomendaciones seguras para continuar.",
+            "Administra las frases que el sistema reconoce y amplía el vocabulario\n"
+            "            usado en las consultas de diagnóstico.",
+        ).replace(
+            '<div class="workflow">\n'
+            '                <span><b>01</b> Describe la falla</span>\n'
+            '                <span><b>02</b> Añade evidencias</span>\n'
+            '                <span><b>03</b> Revisa el diagnóstico</span>\n'
+            "            </div>",
+            "",
+        )
+    st.markdown(hero, unsafe_allow_html=True)
+    if st.session_state["harddiag_modo"] == "experto":
+        st.write("Administra el vocabulario aprendido; el diagnóstico normal queda en una vista separada.")
+    else:
+        st.write(
+            "Empieza por contar qué le sucede al computador. Los datos adicionales son opcionales."
+        )
+    st.info(
+        "Orientación educativa, no reemplaza a un técnico. Si percibes olor a quemado, "
+        "apaga y desconecta el equipo; nunca abras la fuente de poder."
     )
 
     try:
         motor = obtener_motor()
         sintomas_catalogo = motor.listar_sintomas()
-        hechos_por_seccion = motor.listar_hechos_base()
     except (FileNotFoundError, OSError, PrologError, RuntimeError) as error:
         st.error(f"No se pudo iniciar SWI-Prolog o cargar la base de conocimiento: {error}")
         st.info(
@@ -737,87 +976,74 @@ def main() -> None:
         )
         return
 
-    cantidad_hechos_visibles = sum(map(len, hechos_por_seccion.values()))
-    with st.expander(
-        f"Explorar todos los hechos y catálogos de la base ({cantidad_hechos_visibles} elementos)"
-    ):
-        st.caption(
-            "La base Prolog contiene hechos, relaciones y catálogos. Aquí se muestran "
-            "todos sus elementos; los datos de cada caso se ingresan en los controles "
-            "de síntomas, pitidos, pruebas y detalles del equipo."
-        )
-        for seccion, hechos in hechos_por_seccion.items():
-            st.markdown(f"#### {seccion} ({len(hechos)})")
-            st.code("\n".join(hechos), language="prolog")
-
     opciones_sintomas = {nombre: descripcion for nombre, descripcion in sintomas_catalogo}
-    st.markdown("#### Detalles opcionales del equipo")
-    st.caption(
-        "Cada casilla funciona de forma independiente y muestra únicamente sus propios campos."
+    if st.session_state["harddiag_modo"] == "experto":
+        if st.button("← Volver al diagnóstico normal", key="harddiag_volver_normal"):
+            st.session_state["harddiag_modo"] = "normal"
+            st.rerun()
+        mostrar_panel_experto(motor, opciones_sintomas)
+        return
+
+    columnas_modo = st.columns([3, 1])
+    with columnas_modo[0]:
+        st.caption("Estás en el modo normal: las herramientas de conocimiento no aparecen aquí.")
+    with columnas_modo[1]:
+        if st.button(
+            "Ir al modo experto →",
+            key="harddiag_ir_experto",
+            use_container_width=True,
+        ):
+            st.session_state["harddiag_modo"] = "experto"
+            st.rerun()
+
+    st.markdown('<div class="section-kicker">Paso 1 · Describe el problema</div>', unsafe_allow_html=True)
+    st.markdown("## ¿Qué le sucede al computador?")
+    st.markdown(
+        '<p class="section-intro">Selecciona los síntomas que observas o descríbelos como se los contarías a un técnico.</p>',
+        unsafe_allow_html=True,
     )
-    columna_temperatura, columna_equipo = st.columns(2)
-    with columna_temperatura:
-        conoce_temperatura = st.checkbox(
-            "Conozco la temperatura del procesador",
-            key="opcion_temperatura_independiente",
-        )
-    with columna_equipo:
-        incluir_equipo = st.checkbox(
-            "Indicar tipo y antigüedad del computador",
-            key="opcion_equipo_independiente",
-        )
-
-    with st.container(border=True):
-        columna_temperatura, columna_equipo = st.columns(2)
-        with columna_temperatura:
-            if st.session_state["opcion_temperatura_independiente"]:
-                temperatura = st.number_input(
-                    "Temperatura del procesador (°C)",
-                    min_value=0,
-                    max_value=150,
-                    step=1,
-                    value=None,
-                    placeholder="Ingresa los grados Celsius",
-                )
-            else:
-                temperatura = None
-        with columna_equipo:
-            if st.session_state["opcion_equipo_independiente"]:
-                tipo_equipo = st.selectbox(
-                    "Tipo de equipo",
-                    options=["escritorio", "portatil"],
-                    format_func=lambda valor: (
-                        "Computador de escritorio"
-                        if valor == "escritorio"
-                        else "Computador portátil"
-                    ),
-                )
-                antiguedad = st.number_input(
-                    "Antigüedad (años)", min_value=0, max_value=100, step=1, value=5
-                )
-            else:
-                tipo_equipo = None
-                antiguedad = None
-
     with st.container(border=True):
         elegidos = st.multiselect(
-            "Síntomas observados",
+            "Síntomas principales",
             options=list(opciones_sintomas),
             format_func=lambda nombre: opciones_sintomas[nombre],
-            placeholder="Selecciona uno o varios síntomas",
+            placeholder="Busca y selecciona los síntomas observados",
         )
-        adicionales = st.text_input(
-            "Otros síntomas o fallas (opcional)",
-            placeholder="Ejemplo: no prende, pantalla negra, portátil se calienta, olor a quemado",
-            help="Puedes escribir descripciones normales del problema para equipos de escritorio o portátiles; el sistema intenta convertirlas a síntomas válidos.",
+        adicionales = st.text_area(
+            "Describe cualquier otra falla",
+            placeholder=(
+                "Ejemplo: el computador se apaga al jugar y el ventilador suena muy fuerte. "
+                "Puedes escribir varias observaciones."
+            ),
+            help=(
+                "Señala qué ocurre, cuándo ocurre y cualquier ruido, luz o mensaje que aparezca. "
+                "Se pueden escribir daños no incluidos en la lista."
+            ),
+            height=120,
+            key="harddiag_descripcion_falla",
         )
         sintomas_libres = extraer_sintomas_libres(adicionales)
+        if adicionales.strip() and not sintomas_libres:
+            st.info(
+                "La descripción quedó registrada. Aún no se relaciona con un síntoma conocido, "
+                "así que no se inventará un diagnóstico. Un experto puede agregar esa frase "
+                "en la sección de aprendizaje."
+            )
+        elif sintomas_libres:
+            st.caption(
+                "Síntomas reconocidos: "
+                + " · ".join(
+                    opciones_sintomas.get(sintoma, sintoma)
+                    for sintoma in sintomas_libres
+                )
+            )
+
         presenta_lentitud = "lentitud" in elegidos or "lentitud" in sintomas_libres
         if presenta_lentitud:
-            st.markdown("#### Revisemos por qué va lento")
+            st.markdown("#### Precisemos la lentitud")
             st.caption(
-                "Te haré unas preguntas breves, una por una. Solo las respuestas afirmativas "
-                "se agregarán como síntomas para el análisis."
+                "Responde estas preguntas breves; solo las respuestas afirmativas se usarán "
+                "como síntomas adicionales."
             )
             paso_lentitud = st.session_state.get("harddiag_lentitud_paso", 0)
             respuestas_lentitud = st.session_state.get("harddiag_lentitud_respuestas", {})
@@ -874,8 +1100,7 @@ def main() -> None:
                     )
                 else:
                     st.info(
-                        "No se identificaron síntomas adicionales en estas preguntas. "
-                        "El síntoma general de lentitud se incluirá de todas formas."
+                        "No se identificaron síntomas adicionales. Se incluirá la lentitud general."
                     )
                 if st.button("Volver a revisar las respuestas", key="harddiag_lentitud_reiniciar"):
                     st.session_state["harddiag_lentitud_paso"] = 0
@@ -885,23 +1110,75 @@ def main() -> None:
             st.session_state["harddiag_lentitud_paso"] = 0
             st.session_state["harddiag_lentitud_respuestas"] = {}
 
-        marca = st.text_input(
-            "Marca del computador",
-            placeholder="Ejemplo: Dell, HP, Lenovo, ASUS",
-            help="Dato informativo para identificar el equipo; no cambia el diagnóstico.",
-        ).strip()
+    st.markdown('<div class="section-kicker">Paso 2 · Añade evidencias</div>', unsafe_allow_html=True)
+    st.markdown("## Datos que pueden afinar el resultado")
+    st.markdown(
+        '<p class="section-intro">Son opcionales; analiza igualmente si no tienes esta información.</p>',
+        unsafe_allow_html=True,
+    )
 
-        st.markdown("#### Otros datos")
-        patron_label = st.selectbox(
-            "Patrón de pitidos",
-            options=["No lo conozco / no aplica", *PATRONES_PITIDOS],
+    temperatura = None
+    tipo_equipo = None
+    antiguedad = None
+    with st.expander("Temperatura y datos del equipo", expanded=False):
+        columna_temperatura, columna_equipo = st.columns(2)
+        with columna_temperatura:
+            conoce_temperatura = st.checkbox(
+                "Tengo la temperatura del procesador",
+                key="opcion_temperatura_independiente",
+            )
+            if conoce_temperatura:
+                temperatura = st.number_input(
+                    "Temperatura aproximada (°C)",
+                    min_value=0,
+                    max_value=150,
+                    step=1,
+                    value=None,
+                    placeholder="Ejemplo: 85",
+                )
+        with columna_equipo:
+            incluir_equipo = st.checkbox(
+                "Agregar tipo y antigüedad del equipo",
+                key="opcion_equipo_independiente",
+            )
+            if incluir_equipo:
+                tipo_equipo = st.selectbox(
+                    "Tipo de equipo",
+                    options=["escritorio", "portatil"],
+                    format_func=lambda valor: (
+                        "Computador de escritorio"
+                        if valor == "escritorio"
+                        else "Computador portátil"
+                    ),
+                )
+                antiguedad = st.number_input(
+                    "Antigüedad (años)", min_value=0, max_value=100, step=1, value=5
+                )
+
+    patron = None
+    marca = ""
+    pruebas_seleccionadas: list[tuple[str, str]] = []
+    resultados_pendientes: list[str] = []
+    with st.expander("Pitidos, pruebas realizadas y marca", expanded=False):
+        columna_patron, columna_marca = st.columns(2)
+        with columna_patron:
+            patron_label = st.selectbox(
+                "Patrón de pitidos al encender",
+                options=["No lo conozco / no aplica", *PATRONES_PITIDOS],
+            )
+            patron = PATRONES_PITIDOS.get(patron_label)
+        with columna_marca:
+            marca = st.text_input(
+                "Marca del computador (opcional)",
+                placeholder="Dell, HP, Lenovo, ASUS...",
+                help="Dato informativo; no modifica las reglas de diagnóstico.",
+            ).strip()
+
+        no_hizo_pruebas = st.checkbox(
+            "No he realizado pruebas",
+            value=True,
+            key="harddiag_no_hizo_pruebas",
         )
-        patron = PATRONES_PITIDOS.get(patron_label)
-
-        st.markdown("#### Pruebas realizadas")
-        no_hizo_pruebas = st.checkbox("No hice ninguna prueba", value=True)
-        pruebas_seleccionadas: list[tuple[str, str]] = []
-        resultados_pendientes: list[str] = []
         if not no_hizo_pruebas:
             nombres_pruebas = st.multiselect(
                 "Selecciona las pruebas realizadas",
@@ -920,7 +1197,12 @@ def main() -> None:
                 else:
                     resultados_pendientes.append(NOMBRES_PRUEBA[nombre])
 
-        enviar = st.button("Analizar síntomas", type="primary")
+    enviar = st.button(
+        "Analizar mi computador",
+        type="primary",
+        use_container_width=True,
+        key="harddiag_analyze",
+    )
 
     if enviar:
         try:

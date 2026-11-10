@@ -58,13 +58,29 @@ La interfaz utiliza un tema oscuro con acentos luminosos. Para detener la aplica
 
 ## Uso
 
-1. Selecciona síntomas del catálogo o escribe una descripción libre del daño (por ejemplo: "no prende", "pantalla negra", "portátil se calienta") y el sistema intenta convertirla a síntomas válidos del dominio. Si indicas que el computador va lento, aparecerá una guía de preguntas paso a paso para precisar si tarda al iniciar, se congela o el disco hace clic.
+1. Empieza en **«¿Qué le sucede al computador?»**: selecciona síntomas o escribe libremente una descripción en el campo multilínea (por ejemplo: "no prende", "pantalla negra", "la pantalla parpadea y se apaga jugando"). El sistema intenta asociar el texto con síntomas conocidos. Si no reconoce una frase, la conserva y avisa que todavía no puede inferir un diagnóstico a partir de ella; un experto puede enseñarle una asociación. Si indicas lentitud, aparece una guía para precisar si tarda al iniciar, se congela o el disco hace clic.
 2. También puedes ingresar identificadores adicionales separados por coma; Python comprueba que existan en el catálogo antes de enviarlos.
-3. Las casillas de temperatura y de tipo/antigüedad funcionan de forma independiente; cada una muestra solo sus propios campos. La temperatura se puede dejar vacía y el patrón de pitidos es opcional.
-4. Puedes registrar la marca del computador; se muestra como dato informativo y no modifica las reglas de diagnóstico.
-5. Deja marcada **«No hice ninguna prueba»** si corresponde. Si desmarcas esa opción, selecciona las pruebas realizadas y su resultado. Las pruebas sin resultado no se envían como evidencia.
-6. Pulsa **«Analizar síntomas»**.
+3. En **«Datos que pueden afinar el resultado»** puedes abrir las secciones opcionales para agregar temperatura, antigüedad, pitidos o pruebas. No es necesario completar estos datos para analizar.
+4. Si necesitas gestionar el vocabulario, pulsa **«Ir al modo experto»**. Allí puedes agregar frases personalizadas, consultar las existentes y eliminar las que ya no uses. **«Volver al diagnóstico normal»** retorna al formulario.
+5. Puedes registrar la marca del computador; se muestra como dato informativo y no modifica las reglas de diagnóstico.
+6. Deja marcada **«No he realizado pruebas»** si corresponde. Si desmarcas esa opción, selecciona las pruebas realizadas y su resultado. Las pruebas sin resultado no se envían como evidencia.
+7. Pulsa **«Analizar mi computador»** y revisa las hipótesis, la evidencia y las recomendaciones.
 
+### Modos de uso
+
+- **Normal:** formulario de síntomas, descripción libre, datos opcionales y resultados del diagnóstico. No muestra herramientas de administración del conocimiento.
+- **Experto:** se abre con el botón **«Ir al modo experto»**. Permite agregar, consultar y eliminar alias persistentes vinculados a los síntomas conocidos. Usa **«Volver al diagnóstico normal»** para salir.
+
+El modo experto administra las frases reconocidas, no crea diagnósticos ni reglas Prolog nuevas.
+
+## Entrega 3: procesamiento del lenguaje natural y aprendizaje dinámico
+
+Este proyecto incluye la funcionalidad solicitada para la entrega académica de procesamiento del lenguaje natural, con integración de DCG y aprendizaje dinámico en cliente:
+
+- Conversión de frases naturales y sus variantes comunes a síntomas del dominio, con integración del parser y el catálogo Prolog.
+- Mapeo de alias aprendidos por el usuario experto: por ejemplo, si se define que "se ven rayas" equivale a `lineas_en_pantalla`, el sistema lo guardará para futuras consultas.
+- El campo acepta cualquier descripción; solo se generan diagnósticos a partir de síntomas que el sistema conoce. El texto no reconocido se indica al usuario en vez de inventar una causa.
+- Compatibilidad con la entrada formal anterior del proyecto (identificadores tipo `no_enciende`, `pitidos(tres_cortos)`, `temp_cpu(97)` y pruebas como `prueba(fuente_con_probador, falla)`).
 
 La interfaz, los resultados y las explicaciones se presentan en español. El resultado contiene los diagnósticos calculados por Prolog (nivel de daño según el tipo de falla, certeza, severidad, prioridad y evidencia), una solución recomendada y pasos orientativos para cada daño reconocido. El nivel de daño se clasifica como leve, moderado o grave a partir de la gravedad base de cada diagnóstico; la severidad puede aumentar por los factores de riesgo del caso. Si faltan datos, muestra componentes sospechosos y el panel **«¿Qué falta?»** con pruebas o datos priorizados por las hipótesis compatibles. Abre **«¿Por qué?»** para ver las reglas comprobadas, los hechos del caso, las negaciones por fallo y las alternativas descartadas mediante pruebas. Las guías son educativas; si no tienes experiencia en reparaciones internas, consulta a un técnico.
 
@@ -84,14 +100,15 @@ En el campo de descripción puedes escribir frases normales; el sistema intenta 
 
 | Archivo | Descripción |
 | --- | --- |
-| `base_conocimiento.pl` | Base Prolog con 45 hechos, reglas R1–R25, diagnósticos, trazas y sugerencias de información faltante. |
-| `motor_inferencia.py` | Adaptador PySwip: carga Prolog, envía entradas y convierte respuestas, explicaciones y sugerencias. |
-| `main.py` | Interfaz Streamlit principal. |
+| `base_conocimiento.pl` | Base Prolog con hechos, reglas R1–R25, diagnóstico, trazas, sugerencias y nuevas reglas para alias y procesamiento de lenguaje natural. |
+| `motor_inferencia.py` | Adaptador PySwip: carga Prolog, normaliza entradas, interpreta texto libre, aplica y persiste alias dinámicos y convierte respuestas, explicaciones y sugerencias. |
+| `main.py` | Interfaz Streamlit con vistas separadas para diagnóstico normal y administración del modo experto. |
+| `aliases_aprendidos.json` | Archivo creado automáticamente para conservar los alias personalizados del modo experto. |
 | `main_consola.py` | Conserva la interfaz interactiva original por consola. |
-| `pruebas.py` | Casos del motor y seis verificaciones de integración, incluido el inventario de hechos y catálogos. |
+| `pruebas.py` | Casos del motor y verificaciones del sistema experto, incluidas pruebas de integración y compatibilidad. |
 | `evidencia_pruebas.txt` | Salida guardada por `pruebas.py`. |
 | `requirements.txt` | Dependencias Python del proyecto. |
-| `web_app.py`, `index.html` | Interfaz web HTTP anterior; se conserva como alternativa, pero el entregable Streamlit se ejecuta con `main.py`. |
+| `web_app.py`, `index.html` | Interfaz web HTTP anterior; se conserva como alternativa, pero el entregable principal es la interfaz Streamlit. |
 | `ficha_proyecto.md` | Ficha académica, alcance e integrantes. |
 | `diccionario_predicados.md` | Referencia de predicados Prolog. |
 
@@ -99,21 +116,21 @@ En el campo de descripción puedes escribir frases normales; el sistema intenta 
 
 ```text
 Formulario Streamlit (main.py)
-        ↓ datos limpios y validados
+        ↓ texto libre / entrada formal / modo experto
 Adaptador PySwip (motor_inferencia.py)
-        ↓ analizar_caso/2
+        ↓ normalización, alias dinámicos y parseo de lenguaje natural
 Base SWI-Prolog (base_conocimiento.pl)
-        ↓ diagnóstico, traza, exclusiones y sugerencias
+        ↓ diagnóstico, traza, exclusiones, sugerencias y DCG
 Presentación en Streamlit
 ```
 
-La inferencia, la explicación de las reglas y la priorización de datos faltantes se realizan en Prolog. Python se ocupa de la interfaz, la validación básica de los valores del formulario y la presentación de la respuesta.
+La inferencia, la explicación de las reglas y la priorización de datos faltantes se realizan en Prolog. Python se ocupa de la interfaz, la validación básica del formulario, la interpretación del lenguaje natural, el aprendizaje dinámico de aliases y la presentación de la respuesta.
 
 ## Base de conocimiento: hechos y reglas
 
-La base mantiene **exactamente 45 hechos** y las **25 reglas de inferencia identificadas como R1–R25**. Los catálogos relacionados están almacenados como hechos compactos para cumplir el conteo; reglas auxiliares permiten consultarlos. La traza informa reglas solo cuando la ruta Prolog correspondiente tuvo éxito. El panel de información faltante se basa en catálogos, evidencias típicas y pruebas que existen en la propia base.
+La base mantiene los hechos del dominio, los catálogos de síntomas y pruebas, y las reglas de inferencia responsables del diagnóstico. Además, incluye el soporte para la entrega 3 con alias dinámicos y un parser mínimo de lenguaje natural mediante DCG.
 
-En Streamlit, **«Explorar todos los hechos y catálogos de la base»** permite consultar los componentes, síntomas, relaciones, pruebas, resultados, umbrales, diagnósticos, acciones y casos de ejemplo definidos en Prolog.
+Los catálogos relacionados están almacenados como hechos compactos para consultar información de componentes, pruebas, resultados, umbrales, diagnósticos y acciones recomendadas. La traza informa reglas solo cuando la ruta Prolog correspondiente tuvo éxito. El panel de información faltante se basa en catálogos, evidencias típicas y pruebas que existen en la propia base.
 
 Los componentes cubiertos son fuente de poder, placa base, procesador/refrigeración, memoria RAM, almacenamiento y tarjeta gráfica/video. Los diagnósticos incluyen fallas de fuente, video, placa base, refrigeración, RAM, disco y batería CMOS.
 
@@ -123,13 +140,14 @@ Los componentes cubiertos son fuente de poder, placa base, procesador/refrigerac
 py pruebas.py
 ```
 
-El script ejecuta once casos base y seis comprobaciones de integración:
+El script ejecuta once casos base y siete comprobaciones de integración:
 
 1. Diagnóstico suficiente con explicación de reglas y hechos.
 2. Síntomas insuficientes.
 3. Más de una hipótesis compatible.
 4. Recomendación de datos/prueba faltante.
 5. Entrada válida sin diagnóstico final.
+6. Reconocimiento de descripciones naturales adicionales.
 
 El comando debe terminar con código 0 e informar todas las verificaciones aprobadas. También actualiza `evidencia_pruebas.txt`.
 
@@ -140,6 +158,17 @@ La consola anterior se conserva en:
 ```powershell
 py main_consola.py
 ```
+
+## Modo experto y aprendizaje dinámico
+
+El modo experto del proyecto permite que el usuario registre frases comunes que luego se convertirán automáticamente en síntomas del dominio. Por ejemplo:
+
+```text
+Frase: "pantalla con rayas"
+Se guarda como alias de: lineas_en_pantalla
+```
+
+Esto hace que el sistema aprenda dinámicamente variantes del lenguaje natural sin alterar la lógica de inferencia ni la validación del catálogo. La relación se conserva para futuras consultas en la misma sesión y puede reutilizarse en nuevas entradas.
 
 ## Solución de problemas
 
